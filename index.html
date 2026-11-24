@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="آشپزخانه من">
+    <meta name="theme-color" content="#0f172a">
+    <title>دستیار هوشمند آشپزخانه و تغذیه</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Vazirmatn', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+                        emerald: { 500: '#10b981', 600: '#059669' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: calc(env(safe-area-inset-bottom) + 5rem);
+            background-color: #f8fafc;
+        }
+        .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-up { animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        /* در حالت انگلیسی (چپ‌به‌راست) فلش‌ها برعکس می‌شوند */
+        [dir="ltr"] .dir-flip { transform: scaleX(-1); }
+        input, textarea { user-select: text; -webkit-user-select: text; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased select-none">
+
+    <!-- هدر -->
+    <header class="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm">
+                <i data-lucide="chef-hat" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base text-slate-900 leading-tight" id="header-title"></h1>
+                <p class="text-[11px] text-slate-500" id="header-subtitle"></p>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <button onclick="toggleLanguage()" id="lang-btn" class="px-2.5 py-1.5 text-xs font-extrabold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition" data-i18n-title="language">EN</button>
+            <button onclick="openModal('modal-help')" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition" data-i18n-title="helpTitle">
+                <i data-lucide="smartphone" class="w-5 h-5"></i>
+            </button>
+            <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition" data-i18n-title="settingsTitle">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- نوار اتصال دوباره به پوشه -->
+    <div id="storage-banner" class="hidden bg-amber-100 text-amber-900 text-xs px-4 py-2 flex items-center justify-between gap-2">
+        <span data-i18n="stReconnect"></span>
+        <button onclick="reconnectFolder()" class="px-3 py-1 bg-amber-500 text-white font-bold rounded-lg shrink-0" data-i18n="reconnect"></button>
+    </div>
+
+    <!-- نوار پردازش -->
+    <div id="ai-loading-banner" class="hidden bg-indigo-600 text-white text-xs px-4 py-2 flex items-center justify-center gap-2 shadow-sm">
+        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span id="ai-loading-text"></span>
+    </div>
+
+    <main class="max-w-lg mx-auto px-4 pt-4 pb-8 space-y-5">
+
+        <!-- ==================== تب ۱: داشبورد ==================== -->
+        <section id="tab-dashboard" class="space-y-5">
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <button onclick="changeSelectedDate(-1)" class="dir-flip p-2 rounded-xl hover:bg-slate-100 text-slate-600 active:scale-95 transition">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+                <div class="text-center">
+                    <div class="font-bold text-sm text-slate-800" id="selected-date-label"></div>
+                    <div class="text-[11px] text-slate-400" id="selected-date-sub"></div>
+                </div>
+                <button onclick="changeSelectedDate(1)" class="dir-flip p-2 rounded-xl hover:bg-slate-100 text-slate-600 active:scale-95 transition">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-5 text-white shadow-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i>
+                        <span data-i18n="summaryToday"></span>
+                    </span>
+                    <span class="text-xs bg-white/10 px-2.5 py-1 rounded-full text-indigo-200" id="daily-items-count"></span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-white/10 rounded-2xl p-3.5 border border-white/10">
+                        <div class="text-xs text-slate-300 mb-1" data-i18n="totalCalories"></div>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-extrabold text-white" id="stat-calories">0</span>
+                            <span class="text-xs text-slate-400">kcal</span>
+                        </div>
+                    </div>
+                    <div class="bg-emerald-500/20 rounded-2xl p-3.5 border border-emerald-400/20">
+                        <div class="text-xs text-emerald-200 mb-1 font-medium" data-i18n="protein"></div>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-extrabold text-emerald-300" id="stat-protein">0</span>
+                            <span class="text-xs text-emerald-200/80" data-i18n="gramsWord"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-2 text-center pt-2 border-t border-white/10">
+                    <div>
+                        <div class="text-[11px] text-slate-400" data-i18n="carbs"></div>
+                        <div class="font-bold text-sm mt-0.5"><span id="stat-carbs">0</span> <span class="text-[10px] font-normal text-slate-400">g</span></div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400" data-i18n="fat"></div>
+                        <div class="font-bold text-sm mt-0.5"><span id="stat-fat">0</span> <span class="text-[10px] font-normal text-slate-400">g</span></div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400" data-i18n="sugar"></div>
+                        <div class="font-bold text-sm mt-0.5"><span id="stat-sugar">0</span> <span class="text-[10px] font-normal text-slate-400">g</span></div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400" data-i18n="sodium"></div>
+                        <div class="font-bold text-sm mt-0.5 text-amber-300"><span id="stat-sodium">0</span> <span class="text-[10px] font-normal text-slate-400">mg</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="openLogConsumptionModal()" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-md shadow-indigo-200 flex items-center justify-center gap-2 transition">
+                <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                <span data-i18n="logFoodBtn"></span>
+            </button>
+
+            <div>
+                <h2 class="font-bold text-sm text-slate-700 mb-3 flex items-center justify-between">
+                    <span data-i18n="loggedFoods"></span>
+                    <span class="text-xs font-normal text-slate-400" data-i18n="autoDeduct"></span>
+                </h2>
+                <div id="daily-logs-list" class="space-y-2.5"></div>
+            </div>
+        </section>
+
+        <!-- ==================== تب ۲: موجودی خانه ==================== -->
+        <section id="tab-pantry" class="hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="font-bold text-base text-slate-800" data-i18n="pantryTitle"></h2>
+                    <p class="text-xs text-slate-500" data-i18n="pantrySub"></p>
+                </div>
+                <button onclick="openAddPantryModal()" class="px-3.5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span data-i18n="addManual"></span>
+                </button>
+            </div>
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute start-3.5 top-3"></i>
+                <input type="text" id="pantry-search" oninput="renderPantry()" data-i18n-ph="pantrySearch" class="w-full bg-white border border-slate-200 rounded-xl ps-10 pe-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <div id="pantry-list" class="space-y-3"></div>
+        </section>
+
+        <!-- ==================== تب ۳: لیست خرید ==================== -->
+        <section id="tab-shopping" class="hidden space-y-4">
+            <div class="bg-amber-50 border border-amber-200/80 rounded-2xl p-3.5 flex items-start gap-3">
+                <div class="p-2 bg-amber-100 text-amber-600 rounded-xl shrink-0">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                </div>
+                <div class="text-xs text-amber-900 leading-relaxed" data-i18n-html="shopTip"></div>
+            </div>
+            <form onsubmit="handleQuickAddShopping(event)" class="flex gap-2">
+                <input type="text" id="quick-shopping-name" required data-i18n-ph="quickShopPh" class="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                <button type="submit" class="px-4 py-2.5 bg-slate-900 text-white text-xs font-bold rounded-xl shrink-0 active:scale-95 transition" data-i18n="addBtn"></button>
+            </form>
+            <div id="shopping-list" class="space-y-2.5"></div>
+        </section>
+
+        <!-- ==================== تب ۴: لیست استاندارد ==================== -->
+        <section id="tab-standards" class="hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="font-bold text-base text-slate-800" data-i18n="stdTitle"></h2>
+                    <p class="text-xs text-slate-500" data-i18n="stdSub"></p>
+                </div>
+                <button onclick="openStandardModal()" class="px-3.5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span data-i18n="stdNew"></span>
+                </button>
+            </div>
+            <div id="standards-list" class="space-y-3"></div>
+        </section>
+    </main>
+
+    <!-- نوار پایین -->
+    <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+        <div class="max-w-lg mx-auto grid grid-cols-4 h-16">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center justify-center gap-1 text-indigo-600 transition">
+                <i data-lucide="utensils" class="w-5 h-5"></i>
+                <span class="text-[11px]" data-i18n="navDashboard"></span>
+            </button>
+            <button onclick="switchTab('pantry')" id="nav-pantry" class="nav-btn flex flex-col items-center justify-center gap-1 text-slate-400 transition">
+                <i data-lucide="refrigerator" class="w-5 h-5"></i>
+                <span class="text-[11px]" data-i18n="navPantry"></span>
+            </button>
+            <button onclick="switchTab('shopping')" id="nav-shopping" class="nav-btn relative flex flex-col items-center justify-center gap-1 text-slate-400 transition">
+                <div class="relative">
+                    <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                    <span id="shopping-badge" class="hidden absolute -top-1.5 -right-2 bg-rose-500 text-white text-[10px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">0</span>
+                </div>
+                <span class="text-[11px]" data-i18n="navShopping"></span>
+            </button>
+            <button onclick="switchTab('standards')" id="nav-standards" class="nav-btn flex flex-col items-center justify-center gap-1 text-slate-400 transition">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                <span class="text-[11px]" data-i18n="navStandards"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==================== مودال‌ها ==================== -->
+
+    <!-- ۱. ثبت مصرف -->
+    <div id="modal-consume" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 space-y-4 animate-slide-up max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900" data-i18n="consumeTitle"></h3>
+                <button onclick="closeModal('modal-consume')" class="p-1.5 bg-slate-100 rounded-full text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <!-- انتخاب: از انبار خانه یا بیرون -->
+            <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl">
+                <button type="button" id="src-home" onclick="setConsumeSource('home')" class="py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5">
+                    <i data-lucide="home" class="w-4 h-4"></i><span data-i18n="fromHome"></span>
+                </button>
+                <button type="button" id="src-out" onclick="setConsumeSource('out')" class="py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5">
+                    <i data-lucide="store" class="w-4 h-4"></i><span data-i18n="eatenOut"></span>
+                </button>
+            </div>
+
+            <!-- فرم غذای بیرون: چند ردیف -->
+            <form id="consume-out-form" onsubmit="handleOutsideSubmit(event)" class="hidden space-y-3">
+                <p class="text-[11px] text-slate-500 leading-relaxed" data-i18n="outHint"></p>
+                <div id="out-rows" class="space-y-2"></div>
+                <button type="button" onclick="addOutsideRow()" class="w-full py-2.5 border-2 border-dashed border-indigo-200 hover:bg-indigo-50 text-indigo-600 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i><span data-i18n="addAnother"></span>
+                </button>
+                <button type="submit" class="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-2xl shadow-md transition" data-i18n="outSubmit"></button>
+            </form>
+
+            <form id="consume-home-form" onsubmit="handleConsumeSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5" data-i18n="pickFromPantry"></label>
+                    <select id="consume-item-select" onchange="updateConsumeUnitHint()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5"><span data-i18n="amountEaten"></span> (<span id="consume-unit-label"></span>)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" step="any" min="0.1" id="consume-amount" oninput="previewConsumeNutrition()" required data-i18n-ph="amountPh" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-base font-bold focus:outline-none focus:border-indigo-500">
+                        <div class="flex gap-1" id="quick-amount-buttons"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1" id="consume-stock-hint"></p>
+                </div>
+                <div id="consume-nutrition-preview" class="hidden bg-indigo-50/70 border border-indigo-100 rounded-2xl p-3 text-xs space-y-1.5">
+                    <div class="font-bold text-indigo-900" data-i18n="thisAmountNut"></div>
+                    <div class="grid grid-cols-3 gap-2 text-slate-700">
+                        <div><span data-i18n="calShort"></span>: <span class="font-bold text-slate-900" id="prev-cal">0</span></div>
+                        <div><span data-i18n="protein"></span>: <span class="font-bold text-emerald-700" id="prev-pro">0</span>g</div>
+                        <div><span data-i18n="carbs"></span>: <span class="font-bold" id="prev-carb">0</span>g</div>
+                        <div><span data-i18n="fat"></span>: <span class="font-bold" id="prev-fat">0</span>g</div>
+                        <div><span data-i18n="sugar"></span>: <span class="font-bold" id="prev-sug">0</span>g</div>
+                        <div><span data-i18n="sodShort"></span>: <span class="font-bold text-amber-700" id="prev-sod">0</span>mg</div>
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-2xl shadow-md transition" data-i18n="consumeSubmit"></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ۲. لیست استاندارد -->
+    <div id="modal-standard" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 space-y-4 animate-slide-up max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900" id="standard-modal-title"></h3>
+                <button onclick="closeModal('modal-standard')" class="p-1.5 bg-slate-100 rounded-full text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleStandardSubmit(event)" class="space-y-3.5">
+                <input type="hidden" id="std-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="foodName"></label>
+                    <input type="text" id="std-name" required data-i18n-ph="stdNamePh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="unitLabel"></label>
+                        <select id="std-unit" data-units onchange="updateStandardUnitLabels()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="minAtHome"></label>
+                        <input type="number" step="any" min="0" id="std-min" required data-i18n-ph="minPh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-slate-800" id="std-nutrition-basis-label"></span>
+                        <button type="button" onclick="fetchNutritionForStandardForm()" class="px-2.5 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                            <span data-i18n="aiSearch"></span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div><label class="block text-[10px] text-slate-500 mb-0.5" data-i18n="calLabel"></label><input type="number" step="any" id="std-cal" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
+                        <div><label class="block text-[10px] text-emerald-700 font-bold mb-0.5" data-i18n="proLabel"></label><input type="number" step="any" id="std-pro" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
+                        <div><label class="block text-[10px] text-slate-500 mb-0.5" data-i18n="carbLabel"></label><input type="number" step="any" id="std-carb" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
+                        <div><label class="block text-[10px] text-slate-500 mb-0.5" data-i18n="fatLabel"></label><input type="number" step="any" id="std-fat" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
+                        <div><label class="block text-[10px] text-slate-500 mb-0.5" data-i18n="sugLabel"></label><input type="number" step="any" id="std-sug" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
+                        <div><label class="block text-[10px] text-amber-700 mb-0.5" data-i18n="sodLabel"></label><input type="number" step="any" id="std-sod" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-normal" data-i18n="zeroHint"></p>
+                </div>
+                <button type="submit" class="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-2xl shadow-md transition" data-i18n="stdSave"></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ۳. ثبت خرید (خریدم!) همراه با اسکن -->
+    <div id="modal-purchase" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 space-y-4 animate-slide-up max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900" data-i18n="purchaseTitle"></h3>
+                <button onclick="closeModal('modal-purchase')" class="p-1.5 bg-slate-100 rounded-full text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handlePurchaseSubmit(event)" class="space-y-4">
+                <input type="hidden" id="purchase-shop-id">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center gap-3">
+                    <i data-lucide="shopping-bag" class="w-6 h-6 text-emerald-600"></i>
+                    <div>
+                        <div class="text-xs text-emerald-700" data-i18n="purchasingFor"></div>
+                        <div class="font-bold text-base text-emerald-950" id="purchase-item-name"></div>
+                    </div>
+                </div>
+
+                <!-- دکمه اسکن: دوربین را باز می‌کند -->
+                <button type="button" onclick="startScan()" class="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-[0.99] transition">
+                    <i data-lucide="scan-line" class="w-5 h-5"></i>
+                    <span data-i18n="scanBtn"></span>
+                </button>
+                <p class="text-[11px] text-slate-500 -mt-2 text-center" data-i18n="scanHint"></p>
+                <input type="file" id="scan-input" accept="image/*" capture="environment" class="hidden" onchange="onScanFile(event)">
+
+                <!-- نتیجه اسکن -->
+                <div id="scan-preview" class="hidden"></div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="amountBought"></label>
+                        <input type="number" step="any" min="0.1" id="purchase-amount" required data-i18n-ph="amountBoughtPh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-base font-bold focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="unitShort"></label>
+                        <select id="purchase-unit" data-units class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-medium focus:outline-none focus:border-emerald-500"></select>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-500" data-i18n="purchaseNote"></p>
+                <button type="submit" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition" data-i18n="purchaseSubmit"></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ۴. انبار -->
+    <div id="modal-pantry" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 space-y-4 animate-slide-up">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900" id="pantry-modal-title"></h3>
+                <button onclick="closeModal('modal-pantry')" class="p-1.5 bg-slate-100 rounded-full text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handlePantrySubmit(event)" class="space-y-4">
+                <input type="hidden" id="pantry-edit-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="foodName"></label>
+                    <input type="text" id="pantry-name" required data-i18n-ph="pantryNamePh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="currentAmount"></label>
+                        <input type="number" step="any" min="0" id="pantry-amount" required data-i18n-ph="pantryAmountPh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="unitShort"></label>
+                        <select id="pantry-unit" data-units class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="pantryMin"></label>
+                    <input type="number" step="any" min="0" id="pantry-min" value="1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <button type="submit" class="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-2xl shadow-md transition" data-i18n="pantrySave"></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ۵. راهنمای نصب -->
+    <div id="modal-help" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 space-y-4 animate-slide-up max-h-[85vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i data-lucide="smartphone" class="w-5 h-5 text-indigo-600"></i>
+                    <span data-i18n="helpTitle"></span>
+                </h3>
+                <button onclick="closeModal('modal-help')" class="p-1.5 bg-slate-100 rounded-full text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
+                <p class="font-medium text-slate-800" data-i18n="helpIntro"></p>
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
+                    <div class="flex items-start gap-2.5"><span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0 text-[11px]">1</span><span data-i18n-html="help1"></span></div>
+                    <div class="flex items-start gap-2.5"><span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0 text-[11px]">2</span><span data-i18n-html="help2"></span></div>
+                    <div class="flex items-start gap-2.5"><span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0 text-[11px]">3</span><span data-i18n-html="help3"></span></div>
+                </div>
+                <p class="text-[11px] text-emerald-700 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200" data-i18n="helpNote"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ۶. تنظیمات -->
+    <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 space-y-4 animate-slide-up max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900" data-i18n="settingsTitle"></h3>
+                <button onclick="closeModal('modal-settings')" class="p-1.5 bg-slate-100 rounded-full text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-3">
+                <!-- زبان -->
+                <div class="flex items-center justify-between bg-slate-50 rounded-xl p-2">
+                    <span class="text-xs font-bold text-slate-700 px-2" data-i18n="language"></span>
+                    <div class="flex gap-1">
+                        <button onclick="setLanguage('fa')" id="lang-fa" class="px-3 py-1.5 rounded-lg text-xs font-bold">فارسی</button>
+                        <button onclick="setLanguage('en')" id="lang-en" class="px-3 py-1.5 rounded-lg text-xs font-bold">English</button>
+                    </div>
+                </div>
+
+                <!-- حافظه -->
+                <div class="bg-slate-50 rounded-xl p-3 space-y-2">
+                    <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5"><i data-lucide="hard-drive" class="w-4 h-4"></i><span data-i18n="storageSection"></span></div>
+                    <div id="storage-status" class="text-[11px] text-slate-600 leading-relaxed"></div>
+                    <button onclick="requestStorageAccess()" class="w-full py-2.5 px-3 bg-indigo-600 text-white font-bold text-xs rounded-xl flex items-center justify-between">
+                        <span id="grant-storage-label" data-i18n="grantStorage"></span>
+                        <i data-lucide="folder-check" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="exportCsv()" class="w-full py-2.5 px-3 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-between">
+                        <span data-i18n="exportCsv"></span>
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- کلید هوش مصنوعی -->
+                <div class="bg-slate-50 rounded-xl p-3 space-y-2">
+                    <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5"><i data-lucide="key-round" class="w-4 h-4"></i><span data-i18n="apiKeyLabel"></span></label>
+                    <div class="flex gap-2">
+                        <input type="password" id="api-key-input" dir="ltr" autocomplete="off" class="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs" placeholder="AIza...">
+                        <button onclick="saveApiKey()" class="px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg" data-i18n="save"></button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed" data-i18n="apiKeyHint"></p>
+                </div>
+
+                <button onclick="exportData()" class="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-between transition">
+                    <span data-i18n="backupJson"></span>
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                </button>
+                <label class="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-between cursor-pointer transition">
+                    <span data-i18n="restore"></span>
+                    <i data-lucide="upload" class="w-4 h-4"></i>
+                    <input type="file" accept=".json" onchange="importData(event)" class="hidden">
+                </label>
+                <hr class="border-slate-100">
+                <button onclick="resetToSampleData()" class="w-full py-3 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl flex items-center justify-between transition">
+                    <span data-i18n="reset"></span>
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ۷. درخواست اجازه ذخیره‌سازی (فقط یک بار) -->
+    <div id="modal-storage" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 space-y-4 animate-slide-up">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto">
+                <i data-lucide="hard-drive" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-base text-slate-900 text-center" data-i18n="storageTitle"></h3>
+            <p class="text-xs text-slate-600 leading-relaxed text-center" id="storage-modal-body"></p>
+            <div class="flex justify-center gap-2">
+                <button onclick="setLanguage('fa')" class="px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-100">فارسی</button>
+                <button onclick="setLanguage('en')" class="px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-100">English</button>
+            </div>
+            <button onclick="requestStorageAccess()" class="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-2xl shadow-md" data-i18n="allow"></button>
+            <button onclick="dismissStorageModal()" class="w-full py-2 text-slate-500 text-xs font-bold" data-i18n="notNow"></button>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed top-16 left-4 right-4 z-[60] flex flex-col items-center pointer-events-none space-y-2"></div>
+
+    <script>
+        // ==================== ثابت‌ها ====================
+        const STORAGE_KEY = "smart_kitchen_pantry_v1";
+        const SETTINGS_KEY = "smart_kitchen_settings_v1";
+        const DATA_FILE = "kitchen-data.json";
+        const GEMINI_MODELS = ['gemini-3-flash-preview', 'gemini-2.5-flash'];
+        const ZXING_URL = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
+        const NUT_KEYS = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'sodium'];
+        // واحدها به همان شکل فارسی ذخیره می‌شوند تا با داده‌های قبلی سازگار بمانند
+        const UNITS = ['گرم', 'عدد', 'میلی‌لیتر', 'بسته', 'پیمانه', 'پرس'];
+        const UNIT_EN = { 'گرم': 'g', 'عدد': 'pcs', 'میلی‌لیتر': 'ml', 'بسته': 'pack', 'پیمانه': 'cup', 'پرس': 'serving' };
+
+        // ==================== ترجمه‌ها ====================
+        const I18N = {
+            fa: {
+                appTitle: 'دستیار هوشمند آشپزخانه و تغذیه',
+                language: 'زبان',
+                tDashboard: 'داشبورد و مصرف روزانه', sDashboard: 'امروز چقدر انرژی و پروتئین گرفتی؟',
+                tPantry: 'موجودی خانه (انبار)', sPantry: 'مدیریت خوراکی‌های داخل یخچال و کابینت',
+                tShopping: 'لیست خرید هوشمند', sShopping: 'اقلام رو به اتمام به صورت خودکار اضافه می‌شوند',
+                tStandards: 'لیست استاندارد من', sStandards: 'خوراکی‌هایی که همیشه باید در خانه باشند',
+                today: 'امروز',
+                summaryToday: 'خلاصه دریافتی امروز', itemsLogged: '{n} مورد ثبت شده',
+                totalCalories: 'کالری کل', protein: 'پروتئین', gramsWord: 'گرم', carbs: 'کربوهیدرات', fat: 'چربی', sugar: 'قند', sodium: 'نمک/سدیم',
+                calShort: 'کالری', carbShort: 'کربو', sodShort: 'نمک',
+                logFoodBtn: 'ثبت خوراکی که الان خوردم', loggedFoods: 'خوراکی‌های ثبت‌شده', autoDeduct: 'کسر خودکار از انبار انجام می‌شود',
+                noLogs: 'هنوز خوراکی برای این روز ثبت نشده است.', deleteRestore: 'حذف و بازگرداندن به انبار',
+                pantryTitle: 'موجودی فعلی آشپزخانه', pantrySub: 'با هر مصرف از اینجا کم می‌شود', addManual: 'افزودن دستی',
+                pantrySearch: 'جستجو در مواد غذایی خانه...', pantryEmpty: 'موردی در انبار خانه یافت نشد.',
+                statusOk: 'موجودی کافی', statusEmpty: 'تمام شده', statusLow: 'رو به اتمام (در لیست خرید)',
+                currentStock: 'موجودی فعلی:', minAllowed: '(حداقل مجاز: {n})',
+                nutritionPer: 'ارزش غذایی ({basis})', nutritionTable: 'جدول ارزش غذایی ({basis})',
+                basis100: 'در ۱۰۰ {u}', basis1: 'در ۱ {u}', aiRefresh: 'به‌روزرسانی AI',
+                shopTip: '<span class="font-bold block mb-0.5">لیست خرید هوشمند!</span>هر ماده‌ای که در خانه تمام شود یا به زیر حداقل برسد، خودکار اینجا اضافه می‌شود. پس از خرید، دکمه <span class="font-bold underline">«خریدم!»</span> را بزنید؛ می‌توانید همان موقع محصول را اسکن کنید.',
+                quickShopPh: 'نام کالا (مثلاً: سینه مرغ، شیر...)', addBtn: '+ افزودن',
+                shopEmptyTitle: 'همه چیز در خانه موجود است!', shopEmptySub: 'لیست خرید شما در حال حاضر خالی است.',
+                bought: 'خریدم!', needToBuy: 'نیاز به خرید',
+                reasonEmpty: 'کاملاً تمام شده است', reasonLow: 'کمتر از حداقل ({n} {u} مانده)',
+                reasonMissing: 'در خانه موجود نیست (از لیست استاندارد)', reasonManual: 'افزوده‌شده دستی به لیست خرید',
+                stdTitle: 'چیزهایی که باید در خانه باشد', stdSub: 'تعیین حداقل موجودی و ارزش غذایی پایه', stdNew: 'تعریف کالای جدید',
+                stdEmpty: 'هنوز لیست خوراکی‌های ضروری خانه را تعریف نکرده‌اید.', stdMinAtHome: 'حداقل مجاز در خانه:',
+                navDashboard: 'مصرف روزانه', navPantry: 'موجودی خانه', navShopping: 'لیست خرید', navStandards: 'لیست استاندارد',
+                consumeTitle: 'ثبت خوراکی مصرف‌شده', pickFromPantry: 'انتخاب از موجودی خانه', amountEaten: 'مقداری که خوردی',
+                amountPh: 'مثلاً: 150 یا 2', stockHint: 'موجودی فعلی در خانه: {n} {u}', thisAmountNut: 'ارزش غذایی این مقدار:',
+                consumeSubmit: 'ثبت مصرف و کسر از انبار', optionAvail: '{name} (موجود: {n} {u})',
+                stdModalNew: 'تعریف خوراکی ضروری در خانه', stdModalEdit: 'ویرایش خوراکی استاندارد',
+                foodName: 'نام ماده غذایی', stdNamePh: 'مثلاً: سینه مرغ، تخم‌مرغ، شیر کم‌چرب...',
+                unitLabel: 'واحد اندازه‌گیری', minAtHome: 'حداقل مجاز در خانه', minPh: 'مثلاً: 200 یا 4',
+                aiSearch: 'جستجو با هوش مصنوعی',
+                calLabel: 'کالری (kcal)', proLabel: 'پروتئین (گرم)', carbLabel: 'کربوهیدرات (g)', fatLabel: 'چربی (گرم)', sugLabel: 'قند (گرم)', sodLabel: 'نمک/سدیم (mg)',
+                zeroHint: 'اگر مقادیر را صفر بگذارید، هنگام ذخیره به صورت خودکار از اینترنت و هوش مصنوعی استخراج می‌شوند.',
+                stdSave: 'ذخیره در لیست استاندارد',
+                purchaseTitle: 'ثبت خرید و انتقال به انبار', purchasingFor: 'در حال ثبت خرید برای:',
+                scanBtn: 'اسکن اطلاعات محصول (دوربین)',
+                scanHint: 'از جدول ارزش غذایی، بارکد یا بسته‌بندی عکس بگیرید — به هر زبانی',
+                amountBought: 'مقدار خریداری شده', amountBoughtPh: 'مثلاً: 1000 یا 12', unitShort: 'واحد',
+                purchaseNote: 'اگر اسکن نکنید و فقط تایید بزنید، ارزش غذایی به صورت تقریبی از اینترنت پیدا می‌شود.',
+                purchaseSubmit: 'تایید خرید و اضافه به خانه',
+                scanResult: 'اطلاعات اسکن‌شده', rescan: 'اسکن دوباره', removeScan: 'حذف اسکن', netQty: 'وزن/حجم خالص: {q}', per100: 'در هر ۱۰۰ گرم/میلی‌لیتر',
+                pantryAddTitle: 'افزودن خوراکی به موجودی خانه', pantryEditTitle: 'ویرایش موجودی خانه',
+                pantryNamePh: 'مثلاً: ماست یونانی، نان تست...', currentAmount: 'مقدار موجود فعلی', pantryAmountPh: 'مثلاً: 500',
+                pantryMin: 'حداقل مجاز (برای هشدار لیست خرید)', pantrySave: 'ذخیره در انبار',
+                helpTitle: 'نصب روی صفحه اصلی آیفون',
+                helpIntro: 'برای اینکه این برنامه دقیقاً مثل یک اپلیکیشن واقعی آیفون (بدون نوار مرورگر) روی گوشی شما نصب شود، این ۳ مرحله ساده را انجام دهید:',
+                help1: 'این صفحه را در مرورگر <strong>Safari</strong> آیفون باز کنید.',
+                help2: 'در نوار پایین سافاری، روی دکمه <strong>Share</strong> (مربعی که یک فلش رو به بالا دارد) ضربه بزنید.',
+                help3: 'صفحه را کمی به پایین بکشید و گزینه <strong>Add to Home Screen</strong> را انتخاب کرده و در بالا روی <strong>Add</strong> بزنید.',
+                helpNote: 'تمام اطلاعات شما در حافظه گوشی ذخیره می‌شود و با بستن برنامه پاک نخواهد شد.',
+                settingsTitle: 'تنظیمات و پشتیبان‌گیری داده‌ها',
+                storageSection: 'ذخیره در حافظه دستگاه', grantStorage: 'اجازه دسترسی و انتخاب پوشه ذخیره', grantStorageNoFolder: 'فعال‌کردن حافظه دائمی',
+                exportCsv: 'خروجی فایل CSV (قابل باز شدن در اکسل)',
+                apiKeyLabel: 'کلید Gemini API (برای اسکن و هوش مصنوعی)',
+                apiKeyHint: 'رایگان از aistudio.google.com بگیرید. فقط روی همین دستگاه ذخیره می‌شود و داخل فایل‌های خروجی نمی‌رود. بدون کلید، اسکن بارکد و جستجوی تقریبی آنلاین همچنان کار می‌کند.',
+                save: 'ذخیره', backupJson: 'دانلود فایل پشتیبان (JSON)', restore: 'بازیابی اطلاعات از فایل پشتیبان', reset: 'بازنشانی به داده‌های نمونه اولیه',
+                storageTitle: 'اجازه ذخیره دائمی اطلاعات',
+                storageBodyFolder: 'یک بار اجازه بدهید و یک پوشه انتخاب کنید. از این به بعد همه اطلاعات (موجودی، مصرف، لیست خرید) خودکار در فایل‌های kitchen-data.json و CSV داخل همان پوشه ذخیره می‌شود.',
+                storageBodyNoFolder: 'یک بار اجازه بدهید تا اطلاعات در حافظه دائمی گوشی ذخیره شود و مرورگر آن را پاک نکند. هر وقت خواستید از تنظیمات، فایل CSV یا پشتیبان بگیرید و در Files ذخیره کنید.',
+                allow: 'اجازه می‌دهم', notNow: 'بعداً',
+                stFolder: '✅ ذخیره خودکار در پوشه «{name}» (آخرین ذخیره: {time})',
+                stFolderPending: '⚠️ پوشه «{name}» انتخاب شده ولی باید دوباره اجازه بدهید.',
+                stPersistOn: '✅ حافظه دائمی فعال است؛ مرورگر اطلاعات را پاک نمی‌کند.',
+                stPersistOff: '⚠️ حافظه دائمی هنوز فعال نشده است.',
+                stNoFolder: 'این مرورگر (مثلاً سافاری آیفون) اجازه نوشتن خودکار در یک پوشه دلخواه را نمی‌دهد؛ برای گرفتن فایل از دکمه خروجی CSV استفاده کنید.',
+                stReconnect: 'برای ادامه ذخیره خودکار در پوشه انتخابی، یک بار دیگر اجازه بدهید.', reconnect: 'اجازه',
+                aiSearching: 'هوش مصنوعی در حال جستجوی ارزش غذایی «{name}»...',
+                searchingOnline: 'جستجوی تقریبی «{name}» در پایگاه داده آنلاین...',
+                analyzingPhoto: 'در حال تحلیل عکس و خواندن جدول...', readingBarcode: 'در حال خواندن بارکد...', lookingUpBarcode: 'جستجوی بارکد {code}...',
+                srcLabel: 'از روی برچسب', srcBarcode: 'پایگاه بارکد', srcAi: 'تخمین هوش مصنوعی', srcEstimate: 'تقریبی (آنلاین)', srcManual: 'دستی',
+                tNutErr: 'دریافت خودکار ارزش غذایی ممکن نشد. می‌توانید دستی وارد کنید.',
+                tPantryEmpty: 'موجودی خانه خالی است! ابتدا از بخش لیست خرید یا انبار، خوراکی اضافه کنید.',
+                tOverStock: 'مقدار مصرفی بیشتر از موجودی خانه ({n} {u}) است!',
+                tConsumeLowWarn: 'مصرف ثبت شد. هشدار: «{names}» رو به اتمام است و به لیست خرید اضافه شد!',
+                tConsumed: '{n} {u} {name} ثبت شد و از انبار کم شد.',
+                tLogDeleted: 'مورد حذف شد و مقدار آن به موجودی خانه برگشت.',
+                tEnterName: 'ابتدا نام ماده غذایی را وارد کنید.', tAiFilled: 'ارزش غذایی «{name}» پر شد!',
+                tStdSaved: '«{name}» در لیست استاندارد ذخیره شد.', tStdDeleted: 'از لیست استاندارد حذف شد.',
+                tShopAdded: '«{name}» به لیست خرید اضافه شد.', tPurchased: '«{name}» ({n} {u}) به موجودی خانه اضافه شد!',
+                tPantryUpdated: 'موجودی خانه به‌روزرسانی شد.', tPantryDeleted: 'از انبار حذف شد.', tNutUpdated: 'جدول ارزش غذایی «{name}» به‌روزرسانی شد.',
+                tBackupDownloaded: 'فایل پشتیبان دانلود شد.', tRestored: 'اطلاعات با موفقیت بازیابی شد!', tInvalidFile: 'فایل انتخاب‌شده معتبر نیست.',
+                tReadErr: 'خطا در خواندن فایل پشتیبان.', tResetDone: 'برنامه به حالت اولیه بازنشانی شد.',
+                confirmReset: 'همه اطلاعات فعلی پاک و داده‌های نمونه جایگزین می‌شود. ادامه می‌دهید؟',
+                tScanFail: 'چیزی از عکس خوانده نشد. با نور بهتر و از نزدیک‌تر دوباره امتحان کنید.',
+                tScanOk: 'اطلاعات محصول خوانده شد!',
+                tNeedKey: 'برای خواندن جدول از روی عکس، کلید Gemini را در تنظیمات وارد کنید (بارکد بدون کلید هم کار می‌کند).',
+                tStorageOk: 'حافظه دائمی فعال شد.', tFolderOk: 'پوشه وصل شد؛ اطلاعات خودکار در آن ذخیره می‌شود.',
+                tFolderErr: 'دسترسی به پوشه ناموفق بود.', tCsvDone: 'فایل‌های CSV آماده شد.', tCsvInFolder: 'فایل‌های CSV در پوشه «{name}» به‌روز شدند.',
+                tKeySaved: 'کلید ذخیره شد.', confirmLoadFolder: 'در این پوشه فایل اطلاعات قبلی پیدا شد. اطلاعات همان فایل بارگذاری شود؟',
+                tBarcodeNoData: 'بارکد {code} خوانده شد ولی اطلاعاتش در پایگاه داده نبود.',
+                csvName: 'نام', csvAmount: 'مقدار', csvUnit: 'واحد', csvMin: 'حداقل', csvBasis: 'مبنای ارزش غذایی', csvDate: 'تاریخ',
+                csvBrand: 'برند', csvBarcode: 'بارکد', csvSource: 'منبع اطلاعات', csvReason: 'دلیل', csvProduct: 'نام محصول',
+                calories: 'کالری',
+                fromHome: 'از انبار خونه', eatenOut: 'بیرون (رستوران و...)',
+                outHint: 'هر چیزی که خوردی رو با مقدارش بنویس. اگه چند تا چیز بود، با «افزودن مورد دیگر» اضافه کن و آخر «ثبت همه» رو بزن. ارزش غذایی خودکار پیدا میشه و از انبار خونه چیزی کم نمیشه.',
+                outNamePh: 'چی خوردی؟ (مثلاً: چلوکباب، نوشابه)', outAmountPh: 'چقدر',
+                addAnother: 'افزودن مورد دیگر', outSubmit: 'ثبت همه', outBadge: 'بیرون',
+                tOutLogged: '{n} مورد خوراکی بیرون ثبت شد.', tOutEmpty: 'حداقل یک مورد با اسم و مقدار وارد کن.',
+                tOutNoNut: 'ارزش غذایی «{name}» پیدا نشد و با صفر ثبت شد.', tLogDeletedOut: 'مورد حذف شد.',
+                csvWhere: 'محل', whereHome: 'خانه', whereOut: 'بیرون'
+            },
+            en: {
+                appTitle: 'Smart Kitchen & Nutrition Assistant',
+                language: 'Language',
+                tDashboard: 'Dashboard & daily intake', sDashboard: 'How much energy and protein did you get today?',
+                tPantry: 'Pantry', sPantry: 'Manage what is in your fridge and cupboards',
+                tShopping: 'Smart shopping list', sShopping: 'Items running low are added automatically',
+                tStandards: 'My standard list', sStandards: 'Foods that should always be at home',
+                today: 'Today',
+                summaryToday: "Today's intake", itemsLogged: '{n} items logged',
+                totalCalories: 'Total calories', protein: 'Protein', gramsWord: 'g', carbs: 'Carbs', fat: 'Fat', sugar: 'Sugar', sodium: 'Sodium',
+                calShort: 'Calories', carbShort: 'Carbs', sodShort: 'Sodium',
+                logFoodBtn: 'Log what I just ate', loggedFoods: 'Logged foods', autoDeduct: 'Deducted from pantry automatically',
+                noLogs: 'Nothing logged for this day yet.', deleteRestore: 'Delete and return to pantry',
+                pantryTitle: 'Current kitchen stock', pantrySub: 'Goes down every time you log food', addManual: 'Add manually',
+                pantrySearch: 'Search your pantry...', pantryEmpty: 'No items found in your pantry.',
+                statusOk: 'In stock', statusEmpty: 'Out of stock', statusLow: 'Running low (on shopping list)',
+                currentStock: 'In stock:', minAllowed: '(minimum: {n})',
+                nutritionPer: 'Nutrition ({basis})', nutritionTable: 'Nutrition facts ({basis})',
+                basis100: 'per 100 {u}', basis1: 'per 1 {u}', aiRefresh: 'AI refresh',
+                shopTip: '<span class="font-bold block mb-0.5">Smart shopping list!</span>Anything that runs out or drops below its minimum is added here automatically. After buying, tap <span class="font-bold underline">“Bought!”</span> — you can scan the product right there.',
+                quickShopPh: 'Item name (e.g. chicken breast, milk...)', addBtn: '+ Add',
+                shopEmptyTitle: 'You have everything!', shopEmptySub: 'Your shopping list is empty.',
+                bought: 'Bought!', needToBuy: 'Need to buy',
+                reasonEmpty: 'Completely out', reasonLow: 'Below minimum ({n} {u} left)',
+                reasonMissing: 'Not at home (from standard list)', reasonManual: 'Added manually',
+                stdTitle: 'Things that should be at home', stdSub: 'Set minimum stock and base nutrition', stdNew: 'New item',
+                stdEmpty: "You haven't defined your essential foods yet.", stdMinAtHome: 'Minimum at home:',
+                navDashboard: 'Daily intake', navPantry: 'Pantry', navShopping: 'Shopping', navStandards: 'Standards',
+                consumeTitle: 'Log consumed food', pickFromPantry: 'Pick from pantry', amountEaten: 'Amount eaten',
+                amountPh: 'e.g. 150 or 2', stockHint: 'Currently at home: {n} {u}', thisAmountNut: 'Nutrition for this amount:',
+                consumeSubmit: 'Log & deduct from pantry', optionAvail: '{name} ({n} {u} available)',
+                stdModalNew: 'Define an essential item', stdModalEdit: 'Edit standard item',
+                foodName: 'Food name', stdNamePh: 'e.g. chicken breast, eggs, low-fat milk...',
+                unitLabel: 'Unit', minAtHome: 'Minimum at home', minPh: 'e.g. 200 or 4',
+                aiSearch: 'Look up with AI',
+                calLabel: 'Calories (kcal)', proLabel: 'Protein (g)', carbLabel: 'Carbs (g)', fatLabel: 'Fat (g)', sugLabel: 'Sugar (g)', sodLabel: 'Sodium (mg)',
+                zeroHint: 'If you leave all values at zero, they are looked up online automatically when you save.',
+                stdSave: 'Save to standard list',
+                purchaseTitle: 'Log purchase & add to pantry', purchasingFor: 'Logging purchase for:',
+                scanBtn: 'Scan product info (camera)',
+                scanHint: 'Photograph the nutrition table, barcode or package — any language',
+                amountBought: 'Amount bought', amountBoughtPh: 'e.g. 1000 or 12', unitShort: 'Unit',
+                purchaseNote: "If you don't scan and just confirm, approximate nutrition is looked up online.",
+                purchaseSubmit: 'Confirm & add to pantry',
+                scanResult: 'Scanned info', rescan: 'Rescan', removeScan: 'Remove scan', netQty: 'Net quantity: {q}', per100: 'per 100 g/ml',
+                pantryAddTitle: 'Add food to pantry', pantryEditTitle: 'Edit pantry item',
+                pantryNamePh: 'e.g. Greek yogurt, toast...', currentAmount: 'Current amount', pantryAmountPh: 'e.g. 500',
+                pantryMin: 'Minimum (for shopping list alert)', pantrySave: 'Save to pantry',
+                helpTitle: 'Install on iPhone home screen',
+                helpIntro: 'To install this like a real iPhone app (no browser bar), follow these 3 steps:',
+                help1: 'Open this page in <strong>Safari</strong> on your iPhone.',
+                help2: 'Tap the <strong>Share</strong> button (square with an up arrow) in the Safari toolbar.',
+                help3: 'Scroll down, choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.',
+                helpNote: 'All your data is stored on your phone and is not lost when you close the app.',
+                settingsTitle: 'Settings & data backup',
+                storageSection: 'Device storage', grantStorage: 'Grant access & choose save folder', grantStorageNoFolder: 'Enable persistent storage',
+                exportCsv: 'Export CSV files (open in Excel)',
+                apiKeyLabel: 'Gemini API key (for scanning & AI)',
+                apiKeyHint: 'Get one free at aistudio.google.com. Stored on this device only and never written to exported files. Without a key, barcode scanning and approximate online lookup still work.',
+                save: 'Save', backupJson: 'Download backup (JSON)', restore: 'Restore from backup file', reset: 'Reset to sample data',
+                storageTitle: 'Allow permanent storage',
+                storageBodyFolder: 'Grant access once and pick a folder. From then on, everything (pantry, intake, shopping list) is saved automatically to kitchen-data.json and CSV files in that folder.',
+                storageBodyNoFolder: "Grant access once so your data is kept in your phone's persistent storage and the browser won't clear it. Export CSV or a backup from Settings whenever you want, and save it to Files.",
+                allow: 'Allow', notNow: 'Not now',
+                stFolder: '✅ Auto-saving to folder “{name}” (last saved: {time})',
+                stFolderPending: '⚠️ Folder “{name}” is selected but needs permission again.',
+                stPersistOn: "✅ Persistent storage is on; the browser won't clear your data.",
+                stPersistOff: '⚠️ Persistent storage is not enabled yet.',
+                stNoFolder: "This browser (e.g. iPhone Safari) can't write to a folder you choose automatically; use Export CSV to get files.",
+                stReconnect: 'Allow once more to keep auto-saving to your chosen folder.', reconnect: 'Allow',
+                aiSearching: 'AI is looking up nutrition for “{name}”...',
+                searchingOnline: 'Looking up “{name}” in an online food database...',
+                analyzingPhoto: 'Analyzing photo and reading the table...', readingBarcode: 'Reading barcode...', lookingUpBarcode: 'Looking up barcode {code}...',
+                srcLabel: 'From label', srcBarcode: 'Barcode DB', srcAi: 'AI estimate', srcEstimate: 'Approx. (online)', srcManual: 'Manual',
+                tNutErr: "Couldn't get nutrition automatically. You can enter it manually.",
+                tPantryEmpty: 'Your pantry is empty! Add food from the shopping list or pantry first.',
+                tOverStock: 'Amount is more than you have at home ({n} {u})!',
+                tConsumeLowWarn: 'Logged. Warning: “{names}” is running low and was added to the shopping list!',
+                tConsumed: '{n} {u} {name} logged and deducted from pantry.',
+                tLogDeleted: 'Deleted and returned to pantry.',
+                tEnterName: 'Enter the food name first.', tAiFilled: 'Nutrition for “{name}” filled in!',
+                tStdSaved: '“{name}” saved to standard list.', tStdDeleted: 'Removed from standard list.',
+                tShopAdded: '“{name}” added to shopping list.', tPurchased: '“{name}” ({n} {u}) added to pantry!',
+                tPantryUpdated: 'Pantry updated.', tPantryDeleted: 'Removed from pantry.', tNutUpdated: 'Nutrition for “{name}” updated.',
+                tBackupDownloaded: 'Backup downloaded.', tRestored: 'Data restored successfully!', tInvalidFile: 'The selected file is not valid.',
+                tReadErr: 'Error reading backup file.', tResetDone: 'App reset to sample data.',
+                confirmReset: 'All current data will be replaced with sample data. Continue?',
+                tScanFail: "Couldn't read anything from the photo. Try again closer and with better light.",
+                tScanOk: 'Product info read!',
+                tNeedKey: 'To read a nutrition table from a photo, add a Gemini key in Settings (barcodes work without one).',
+                tStorageOk: 'Persistent storage enabled.', tFolderOk: 'Folder connected; data is saved there automatically.',
+                tFolderErr: "Couldn't access the folder.", tCsvDone: 'CSV files ready.', tCsvInFolder: 'CSV files updated in folder “{name}”.',
+                tKeySaved: 'Key saved.', confirmLoadFolder: 'A data file was found in this folder. Load the data from it?',
+                tBarcodeNoData: 'Barcode {code} was read but not found in the database.',
+                csvName: 'Name', csvAmount: 'Amount', csvUnit: 'Unit', csvMin: 'Minimum', csvBasis: 'Nutrition basis', csvDate: 'Date',
+                csvBrand: 'Brand', csvBarcode: 'Barcode', csvSource: 'Data source', csvReason: 'Reason', csvProduct: 'Product name',
+                calories: 'Calories',
+                fromHome: 'From home pantry', eatenOut: 'Eaten out',
+                outHint: "Write what you ate and how much. If there were several things, use “Add another item”, then tap “Log all”. Nutrition is looked up automatically and nothing is deducted from your pantry.",
+                outNamePh: 'What did you eat? (e.g. burger, cola)', outAmountPh: 'How much',
+                addAnother: 'Add another item', outSubmit: 'Log all', outBadge: 'Eaten out',
+                tOutLogged: '{n} eaten-out items logged.', tOutEmpty: 'Enter at least one item with a name and amount.',
+                tOutNoNut: 'No nutrition found for “{name}”; logged with zeros.', tLogDeletedOut: 'Deleted.',
+                csvWhere: 'Where', whereHome: 'Home', whereOut: 'Eaten out'
+            }
+        };
+
+        const SAMPLE_NAMES = {
+            fa: { egg: 'تخم‌مرغ', chicken: 'سینه مرغ', milk: 'شیر کم‌چرب', rice: 'برنج پخته' },
+            en: { egg: 'Eggs', chicken: 'Chicken breast', milk: 'Low-fat milk', rice: 'Cooked rice' }
+        };
+
+        // ==================== وضعیت برنامه ====================
+        let settings = loadSettings();
+        let appState = { standards: [], pantry: [], shoppingList: [], consumptionLogs: [] };
+        let selectedDateStr = getTodayDateStr();
+        let currentTab = 'dashboard';
+        let pendingScan = null;       // نتیجه اسکن در مودال خرید
+        let dirHandle = null;         // پوشه انتخاب‌شده برای ذخیره فایل
+        let dirPermission = 'none';
+        let lastFileSave = null;
+
+        function t(key, params) {
+            let s = (I18N[settings.lang] && I18N[settings.lang][key]) ?? I18N.fa[key] ?? key;
+            if (params) for (const k in params) s = s.split('{' + k + '}').join(params[k]);
+            return s;
+        }
+        function unitLabel(u) { return settings.lang === 'en' ? (UNIT_EN[u] || u) : u; }
+        function isBulkUnit(u) { return u === 'گرم' || u === 'میلی‌لیتر'; }
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function basisLabel(u) { return isBulkUnit(u) ? t('basis100', { u: unitLabel(u) }) : t('basis1', { u: unitLabel(u) }); }
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        function loadSettings() {
+            try { return Object.assign({ lang: 'fa', apiKey: '', storageAsked: false }, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')); }
+            catch (e) { return { lang: 'fa', apiKey: '', storageAsked: false }; }
+        }
+        function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+
+        // ==================== تاریخ و اعداد ====================
+        function getTodayDateStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        function formatDate(dateStr) {
+            try {
+                const [y, m, d] = dateStr.split('-').map(Number);
+                return new Intl.DateTimeFormat(settings.lang === 'en' ? 'en-US' : 'fa-IR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(y, m - 1, d));
+            } catch (e) { return dateStr; }
+        }
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 7); }
+        function roundNum(num) { return Math.round((Number(num) || 0) * 10) / 10; }
+        function emptyNut() { return { calories: 0, protein: 0, carbs: 0, fat: 0, sugar: 0, sodium: 0 }; }
+        function cleanNut(n, source) {
+            const out = {};
+            NUT_KEYS.forEach(k => out[k] = roundNum(n?.[k]));
+            if (source) out.source = source;
+            return out;
+        }
+        function isNutEmpty(n) { return !n || NUT_KEYS.every(k => !Number(n[k])); }
+
+        // ==================== اعلان ====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const styles = {
+                info: ['bg-slate-900 text-white', 'info'], success: ['bg-emerald-600 text-white', 'check-circle'],
+                warning: ['bg-amber-500 text-slate-950 font-bold', 'alert-triangle'], error: ['bg-rose-600 text-white', 'alert-circle']
+            };
+            const [bgClass, iconName] = styles[type] || styles.info;
+            toast.className = `${bgClass} px-4 py-3 rounded-2xl shadow-lg text-xs flex items-center gap-2.5 max-w-md w-full animate-fade-in`;
+            toast.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 shrink-0"></i><span class="leading-relaxed">${esc(message)}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 4200);
+        }
+        function showBanner(text) {
+            document.getElementById('ai-loading-text').textContent = text;
+            document.getElementById('ai-loading-banner').classList.remove('hidden');
+        }
+        function hideBanner() { document.getElementById('ai-loading-banner').classList.add('hidden'); }
+
+        // ==================== زبان ====================
+        function setLanguage(lang) {
+            settings.lang = lang;
+            saveSettings();
+            applyLanguage();
+        }
+        function toggleLanguage() { setLanguage(settings.lang === 'fa' ? 'en' : 'fa'); }
+
+        function applyLanguage() {
+            const fa = settings.lang === 'fa';
+            document.documentElement.lang = settings.lang;
+            document.documentElement.dir = fa ? 'rtl' : 'ltr';
+            document.title = t('appTitle');
+            document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+            document.querySelectorAll('[data-i18n-html]').forEach(el => el.innerHTML = t(el.dataset.i18nHtml));
+            document.querySelectorAll('[data-i18n-ph]').forEach(el => el.placeholder = t(el.dataset.i18nPh));
+            document.querySelectorAll('[data-i18n-title]').forEach(el => el.title = t(el.dataset.i18nTitle));
+            document.getElementById('lang-btn').textContent = fa ? 'EN' : 'فا';
+            ['fa', 'en'].forEach(l => {
+                const b = document.getElementById('lang-' + l);
+                b.className = 'px-3 py-1.5 rounded-lg text-xs font-bold ' + (settings.lang === l ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200');
+            });
+            document.getElementById('storage-modal-body').textContent = t(supportsFolder() ? 'storageBodyFolder' : 'storageBodyNoFolder');
+            document.getElementById('grant-storage-label').textContent = t(supportsFolder() ? 'grantStorage' : 'grantStorageNoFolder');
+            fillUnitSelects();
+            updateStandardUnitLabels();
+            if (pendingScan) renderScanPreview();
+            renderStorageStatus();
+            switchTab(currentTab);
+        }
+
+        function fillUnitSelects() {
+            document.querySelectorAll('select[data-units]').forEach(sel => {
+                const v = sel.value;
+                sel.innerHTML = UNITS.map(u => `<option value="${u}">${unitLabel(u)}</option>`).join('');
+                if (v) sel.value = v;
+            });
+        }
+
+        // ==================== ذخیره‌سازی ====================
+        function saveState() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }
+            catch (e) { console.error('save error', e); }
+            scheduleFileSync();
+        }
+
+        function normalizeState(s) {
+            s = s || {};
+            return {
+                standards: Array.isArray(s.standards) ? s.standards : [],
+                pantry: Array.isArray(s.pantry) ? s.pantry : [],
+                shoppingList: Array.isArray(s.shoppingList) ? s.shoppingList : [],
+                consumptionLogs: Array.isArray(s.consumptionLogs) ? s.consumptionLogs : []
+            };
+        }
+
+        async function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) { appState = normalizeState(JSON.parse(raw)); return; }
+            } catch (e) { console.error('load error', e); }
+            // اگر حافظه مرورگر خالی بود، از فایل داخلی (OPFS) بازیابی کن
+            try {
+                const txt = await opfsRead(DATA_FILE);
+                if (txt) { appState = normalizeState(JSON.parse(txt)); localStorage.setItem(STORAGE_KEY, txt); return; }
+            } catch (e) { /* ignore */ }
+            initDefaultSampleData();
+        }
+
+        function initDefaultSampleData() {
+            const N = SAMPLE_NAMES[settings.lang] || SAMPLE_NAMES.fa;
+            const eggNut = { calories: 72, protein: 6.3, carbs: 0.4, fat: 4.8, sugar: 0.2, sodium: 71 };
+            const chNut = { calories: 165, protein: 31, carbs: 0, fat: 3.6, sugar: 0, sodium: 74 };
+            const milkNut = { calories: 42, protein: 3.4, carbs: 5, fat: 1, sugar: 5, sodium: 44 };
+            const riceNut = { calories: 130, protein: 2.7, carbs: 28, fat: 0.3, sugar: 0.1, sodium: 1 };
+            appState = {
+                standards: [
+                    { id: 'std_1', name: N.egg, unit: 'عدد', minThreshold: 4, nutrition: eggNut },
+                    { id: 'std_2', name: N.chicken, unit: 'گرم', minThreshold: 300, nutrition: chNut },
+                    { id: 'std_3', name: N.milk, unit: 'میلی‌لیتر', minThreshold: 250, nutrition: milkNut },
+                    { id: 'std_4', name: N.rice, unit: 'گرم', minThreshold: 200, nutrition: riceNut }
+                ],
+                pantry: [
+                    { id: 'pan_1', standardId: 'std_1', name: N.egg, amount: 6, unit: 'عدد', minThreshold: 4, nutrition: { ...eggNut } },
+                    { id: 'pan_2', standardId: 'std_2', name: N.chicken, amount: 800, unit: 'گرم', minThreshold: 300, nutrition: { ...chNut } },
+                    { id: 'pan_3', standardId: 'std_3', name: N.milk, amount: 1000, unit: 'میلی‌لیتر', minThreshold: 250, nutrition: { ...milkNut } }
+                ],
+                shoppingList: [
+                    { id: 'shop_1', standardId: 'std_4', name: N.rice, unit: 'گرم', reasonCode: 'missing' }
+                ],
+                consumptionLogs: []
+            };
+            saveState();
+        }
+
+        // ---------- فایل‌ها: پوشه انتخابی + حافظه داخلی برنامه (OPFS) ----------
+        function supportsFolder() { return 'showDirectoryPicker' in window; }
+
+        function idbOpen() {
+            return new Promise((res, rej) => {
+                const r = indexedDB.open('smart-kitchen-fs', 1);
+                r.onupgradeneeded = () => r.result.createObjectStore('handles');
+                r.onsuccess = () => res(r.result);
+                r.onerror = () => rej(r.error);
+            });
+        }
+        async function idbGet(key) {
+            const db = await idbOpen();
+            return new Promise(res => {
+                const req = db.transaction('handles').objectStore('handles').get(key);
+                req.onsuccess = () => res(req.result || null);
+                req.onerror = () => res(null);
+            });
+        }
+        async function idbSet(key, val) {
+            const db = await idbOpen();
+            return new Promise((res, rej) => {
+                const tx = db.transaction('handles', 'readwrite');
+                tx.objectStore('handles').put(val, key);
+                tx.oncomplete = () => res();
+                tx.onerror = () => rej(tx.error);
+            });
+        }
+
+        async function writeFileTo(dir, name, text) {
+            const fh = await dir.getFileHandle(name, { create: true });
+            const w = await fh.createWritable();
+            await w.write(text);
+            await w.close();
+        }
+        async function readFileFrom(dir, name) {
+            try { const fh = await dir.getFileHandle(name); return await (await fh.getFile()).text(); }
+            catch (e) { return null; }
+        }
+        async function opfsRead(name) {
+            if (!navigator.storage?.getDirectory) return null;
+            return readFileFrom(await navigator.storage.getDirectory(), name);
+        }
+
+        let syncTimer = null;
+        function scheduleFileSync() {
+            clearTimeout(syncTimer);
+            syncTimer = setTimeout(syncFilesNow, 700);
+        }
+
+        async function syncFilesNow() {
+            const json = JSON.stringify(appState, null, 2);
+            // نسخه داخلی برنامه (حتی در آیفون)
+            try {
+                if (navigator.storage?.getDirectory) await writeFileTo(await navigator.storage.getDirectory(), DATA_FILE, json);
+            } catch (e) { /* بعضی مرورگرها createWritable را در OPFS ندارند */ }
+            // پوشه‌ای که کاربر انتخاب کرده
+            if (dirHandle && dirPermission === 'granted') {
+                try {
+                    await writeFileTo(dirHandle, DATA_FILE, json);
+                    for (const f of buildCsvFiles()) await writeFileTo(dirHandle, f.name, '﻿' + f.text);
+                    lastFileSave = new Date();
+                } catch (e) {
+                    console.error('folder write failed', e);
+                    dirPermission = 'prompt';
+                }
+                renderStorageStatus();
+            }
+        }
+
+        async function initStorage() {
+            try {
+                if (supportsFolder()) {
+                    const h = await idbGet('dir');
+                    if (h) {
+                        dirHandle = h;
+                        dirPermission = await h.queryPermission({ mode: 'readwrite' });
+                        if (dirPermission === 'granted') syncFilesNow();
+                    }
+                }
+            } catch (e) { console.warn(e); }
+            renderStorageStatus();
+            if (!settings.storageAsked) openModal('modal-storage');
+        }
+
+        // فقط یک بار پرسیده می‌شود (و از تنظیمات قابل تکرار است)
+        async function requestStorageAccess() {
+            if (supportsFolder()) {
+                try {
+                    // اول انتخاب پوشه، چون نیاز به کلیک تازه کاربر دارد
+                    const h = await window.showDirectoryPicker({ id: 'smart-kitchen', mode: 'readwrite', startIn: 'documents' });
+                    dirHandle = h;
+                    dirPermission = 'granted';
+                    await idbSet('dir', h);
+                    const existing = await readFileFrom(h, DATA_FILE);
+                    if (existing && confirm(t('confirmLoadFolder'))) {
+                        try {
+                            appState = normalizeState(JSON.parse(existing));
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+                            renderAll();
+                        } catch (e) { showToast(t('tInvalidFile'), 'error'); }
+                    }
+                    showToast(t('tFolderOk'), 'success');
+                } catch (e) {
+                    if (e.name !== 'AbortError') showToast(t('tFolderErr'), 'error');
+                }
+            }
+            let persisted = false;
+            try { if (navigator.storage?.persist) persisted = await navigator.storage.persist(); } catch (e) { }
+            if (!supportsFolder()) showToast(persisted ? t('tStorageOk') : t('stPersistOff'), persisted ? 'success' : 'warning');
+            settings.storageAsked = true;
+            saveSettings();
+            closeModal('modal-storage');
+            await syncFilesNow();
+            renderStorageStatus();
+        }
+
+        function dismissStorageModal() {
+            settings.storageAsked = true;
+            saveSettings();
+            closeModal('modal-storage');
+        }
+
+        async function reconnectFolder() {
+            if (!dirHandle) return;
+            try { dirPermission = await dirHandle.requestPermission({ mode: 'readwrite' }); } catch (e) { }
+            if (dirPermission === 'granted') { await syncFilesNow(); showToast(t('tFolderOk'), 'success'); }
+            renderStorageStatus();
+        }
+
+        async function renderStorageStatus() {
+            const banner = document.getElementById('storage-banner');
+            banner.classList.toggle('hidden', !(dirHandle && dirPermission !== 'granted'));
+            const el = document.getElementById('storage-status');
+            if (!el) return;
+            const lines = [];
+            if (dirHandle) {
+                lines.push(dirPermission === 'granted'
+                    ? t('stFolder', { name: esc(dirHandle.name), time: lastFileSave ? lastFileSave.toLocaleTimeString(settings.lang === 'en' ? 'en-US' : 'fa-IR') : '—' })
+                    : t('stFolderPending', { name: esc(dirHandle.name) }));
+            }
+            let persisted = false;
+            try { persisted = navigator.storage?.persisted ? await navigator.storage.persisted() : false; } catch (e) { }
+            lines.push(persisted ? t('stPersistOn') : t('stPersistOff'));
+            if (!supportsFolder()) lines.push(t('stNoFolder'));
+            el.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
+        }
+
+        // ---------- CSV ----------
+        function csvRow(arr) {
+            return arr.map(v => {
+                const s = String(v ?? '');
+                return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            }).join(',');
+        }
+        function nutHeaders() { return [t('calories') + ' (kcal)', t('protein') + ' (g)', t('carbs') + ' (g)', t('fat') + ' (g)', t('sugar') + ' (g)', t('sodium') + ' (mg)']; }
+        function nutVals(n) { n = n || {}; return NUT_KEYS.map(k => n[k] ?? 0); }
+        function srcName(s) { return s ? t({ label: 'srcLabel', barcode: 'srcBarcode', ai: 'srcAi', estimate: 'srcEstimate', manual: 'srcManual' }[s] || 'srcManual') : ''; }
+
+        function buildCsvFiles() {
+            const pantry = [csvRow([t('csvName'), t('csvAmount'), t('csvUnit'), t('csvMin'), t('csvBasis'), ...nutHeaders(), t('csvProduct'), t('csvBrand'), t('csvBarcode'), t('csvSource')])];
+            appState.pantry.forEach(p => pantry.push(csvRow([p.name, p.amount, unitLabel(p.unit), p.minThreshold, basisLabel(p.unit), ...nutVals(p.nutrition), p.productName, p.brand, p.barcode, srcName(p.nutrition?.source)])));
+
+            const logs = [csvRow([t('csvDate'), t('csvName'), t('csvAmount'), t('csvUnit'), t('csvWhere'), ...nutHeaders()])];
+            appState.consumptionLogs.forEach(l => logs.push(csvRow([l.date, l.foodName, l.amount, unitLabel(l.unit), t(l.outside ? 'whereOut' : 'whereHome'), ...nutVals(l.nutrition)])));
+
+            const stds = [csvRow([t('csvName'), t('csvUnit'), t('csvMin'), t('csvBasis'), ...nutHeaders(), t('csvBrand'), t('csvBarcode')])];
+            appState.standards.forEach(s => stds.push(csvRow([s.name, unitLabel(s.unit), s.minThreshold, basisLabel(s.unit), ...nutVals(s.nutrition), s.brand, s.barcode])));
+
+            const shop = [csvRow([t('csvName'), t('csvUnit'), t('csvReason')])];
+            appState.shoppingList.forEach(s => shop.push(csvRow([s.name, unitLabel(s.unit), shopReason(s)])));
+
+            return [
+                { name: 'pantry.csv', text: pantry.join('\r\n') },
+                { name: 'consumption-log.csv', text: logs.join('\r\n') },
+                { name: 'standards.csv', text: stds.join('\r\n') },
+                { name: 'shopping-list.csv', text: shop.join('\r\n') }
+            ];
+        }
+
+        function downloadBlob(blob, name) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = name;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }
+
+        async function exportCsv() {
+            if (dirHandle && dirPermission === 'granted') {
+                await syncFilesNow();
+                showToast(t('tCsvInFolder', { name: dirHandle.name }), 'success');
+                return;
+            }
+            const files = buildCsvFiles().map(f => new File(['﻿' + f.text], f.name, { type: 'text/csv' }));
+            const isTouch = window.matchMedia('(pointer: coarse)').matches;
+            if (isTouch && navigator.canShare && navigator.canShare({ files })) {
+                try { await navigator.share({ files }); showToast(t('tCsvDone'), 'success'); return; }
+                catch (e) { if (e.name === 'AbortError') return; }
+            }
+            for (const f of files) { downloadBlob(f, f.name); await sleep(350); }
+            showToast(t('tCsvDone'), 'success');
+        }
+
+        // ==================== هوش مصنوعی (Gemini) ====================
+        async function callGemini(parts, schema) {
+            const key = settings.apiKey || '';
+            let lastErr = new Error('no model');
+            for (const model of GEMINI_MODELS) {
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts }],
+                                generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.1 }
+                            })
+                        });
+                        if (res.status === 404) { lastErr = new Error('model 404'); break; }
+                        if ([400, 401, 403].includes(res.status)) {
+                            const err = new Error('auth ' + res.status); err.fatal = true; throw err;
+                        }
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const j = await res.json();
+                        const text = (j?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+                        if (!text) throw new Error('empty');
+                        return JSON.parse(text);
+                    } catch (e) {
+                        lastErr = e;
+                        if (e.fatal) throw e;
+                        await sleep(800 * (attempt + 1));
+                    }
+                }
+            }
+            throw lastErr;
+        }
+
+        const NUT_SCHEMA_PROPS = {
+            calories: { type: 'NUMBER' }, protein: { type: 'NUMBER' }, carbs: { type: 'NUMBER' },
+            fat: { type: 'NUMBER' }, sugar: { type: 'NUMBER' }, sodium: { type: 'NUMBER' }
+        };
+        const NUT_SCHEMA = { type: 'OBJECT', properties: NUT_SCHEMA_PROPS, required: NUT_KEYS };
+
+        function fetchWithTimeout(url, ms = 12000) {
+            const ctrl = new AbortController();
+            const id = setTimeout(() => ctrl.abort(), ms);
+            return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(id));
+        }
+
+        // تخمین تقریبی از پایگاه داده آزاد Open Food Facts (بدون نیاز به کلید)
+        async function estimateFromOFF(name, unit) {
+            const bulk = isBulkUnit(unit);
+            const suffix = bulk ? '_100g' : '_serving';
+            try {
+                const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}&search_simple=1&action=process&json=1&page_size=20&fields=product_name,nutriments`;
+                const r = await fetchWithTimeout(url);
+                if (!r.ok) return null;
+                const j = await r.json();
+                const vals = { calories: [], protein: [], carbs: [], fat: [], sugar: [], sodium: [] };
+                for (const p of (j.products || [])) {
+                    const n = p.nutriments || {};
+                    let kcal = n['energy-kcal' + suffix];
+                    if (kcal == null && n['energy' + suffix] != null) kcal = n['energy' + suffix] / 4.184;
+                    if (kcal == null || isNaN(kcal)) continue;
+                    vals.calories.push(+kcal);
+                    vals.protein.push(+(n['proteins' + suffix] || 0));
+                    vals.carbs.push(+(n['carbohydrates' + suffix] || 0));
+                    vals.fat.push(+(n['fat' + suffix] || 0));
+                    vals.sugar.push(+(n['sugars' + suffix] || 0));
+                    vals.sodium.push(+(n['sodium' + suffix] || 0) * 1000);
+                }
+                if (vals.calories.length === 0) return null;
+                const median = a => { const s = [...a].sort((x, y) => x - y); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+                const out = {};
+                NUT_KEYS.forEach(k => out[k] = median(vals[k]));
+                return cleanNut(out, 'estimate');
+            } catch (e) { return null; }
+        }
+
+        // ارزش غذایی بر اساس نام: اول هوش مصنوعی، اگر نشد پایگاه داده آنلاین
+        async function fetchNutritionFromAI(foodName, unit, eatenOut = false) {
+            showBanner(t('aiSearching', { name: foodName }));
+            try {
+                const basis = isBulkUnit(unit) ? `100 ${unit === 'میلی‌لیتر' ? 'ml' : 'g'}` : `one typical ${UNIT_EN[unit] || 'piece'}`;
+                const ctx = eatenOut ? ' This was eaten at a restaurant / outside the home, so assume a typical restaurant portion and preparation (oil, sauces, etc.).' : '';
+                const prompt = `Give realistic nutrition facts for the food "${foodName}" (the name may be in Persian or any other language) per ${basis}.${ctx}
+Use reliable references such as USDA FoodData Central. calories in kcal; protein, carbs, fat, sugar in grams; sodium in milligrams.`;
+                try {
+                    const p = await callGemini([{ text: prompt }], NUT_SCHEMA);
+                    return cleanNut(p, 'ai');
+                } catch (e) { console.warn('Gemini failed, falling back', e); }
+                showBanner(t('searchingOnline', { name: foodName }));
+                const est = await estimateFromOFF(foodName, unit);
+                if (est) return est;
+                showToast(t('tNutErr'), 'warning');
+                return null;
+            } finally { hideBanner(); }
+        }
+
+        // ==================== اسکن محصول با دوربین ====================
+        function startScan() {
+            document.getElementById('scan-input').click();
+        }
+
+        async function onScanFile(e) {
+            const file = e.target.files && e.target.files[0];
+            e.target.value = '';
+            if (file) await processScan(file);
+        }
+
+        function loadImageToCanvas(file, maxSide) {
+            return new Promise((res, rej) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.naturalWidth * scale);
+                    c.height = Math.round(img.naturalHeight * scale);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    res(c);
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('image')); };
+                img.src = url;
+            });
+        }
+
+        let zxingPromise = null;
+        function loadZXing() {
+            if (window.ZXing) return Promise.resolve();
+            if (!zxingPromise) {
+                zxingPromise = new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = ZXING_URL; s.onload = res; s.onerror = () => { zxingPromise = null; rej(new Error('zxing')); };
+                    document.head.appendChild(s);
+                });
+            }
+            return zxingPromise;
+        }
+
+        async function detectBarcode(canvas) {
+            // ۱. API داخلی مرورگر (کروم اندروید و ...)
+            try {
+                if ('BarcodeDetector' in window) {
+                    const found = await new BarcodeDetector().detect(canvas);
+                    const hit = found.find(b => /^\d{8,14}$/.test(b.rawValue)) || found[0];
+                    if (hit) return hit.rawValue;
+                }
+            } catch (e) { }
+            // ۲. کتابخانه ZXing (برای سافاری آیفون)
+            try {
+                await loadZXing();
+                const Z = window.ZXing;
+                const hints = new Map();
+                hints.set(Z.DecodeHintType.TRY_HARDER, true);
+                hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128]);
+                const reader = new Z.MultiFormatReader();
+                reader.setHints(hints);
+                const tryDecode = cv => {
+                    try {
+                        const src = new Z.HTMLCanvasElementLuminanceSource(cv);
+                        return reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(src))).getText();
+                    } catch (e) { return null; }
+                };
+                let code = tryDecode(canvas);
+                if (!code) {
+                    // چرخش ۹۰ درجه برای عکس‌های عمودی
+                    const r = document.createElement('canvas');
+                    r.width = canvas.height; r.height = canvas.width;
+                    const ctx = r.getContext('2d');
+                    ctx.translate(r.width / 2, r.height / 2); ctx.rotate(Math.PI / 2);
+                    ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+                    code = tryDecode(r);
+                }
+                return code;
+            } catch (e) { return null; }
+        }
+
+        async function lookupBarcodeOFF(code) {
+            try {
+                const fields = 'product_name,product_name_en,product_name_fa,brands,product_quantity,product_quantity_unit,quantity,serving_quantity,nutriments';
+                const r = await fetchWithTimeout(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=${fields}`);
+                if (!r.ok) return null;
+                const j = await r.json();
+                if (j.status !== 1 || !j.product) return null;
+                const p = j.product, n = p.nutriments || {};
+                let kcal = n['energy-kcal_100g'];
+                if (kcal == null && n['energy_100g'] != null) kcal = n['energy_100g'] / 4.184;
+                const per100 = kcal != null ? cleanNut({
+                    calories: kcal, protein: n.proteins_100g, carbs: n.carbohydrates_100g, fat: n.fat_100g,
+                    sugar: n.sugars_100g, sodium: (n.sodium_100g || (n.salt_100g ? n.salt_100g / 2.5 : 0)) * 1000
+                }) : null;
+                const qUnit = String(p.product_quantity_unit || '').toLowerCase();
+                return {
+                    productName: p['product_name_' + settings.lang] || p.product_name || p.product_name_en || '',
+                    brand: p.brands || '',
+                    barcode: code,
+                    netQty: Number(p.product_quantity) || null,
+                    netUnit: qUnit === 'ml' || qUnit === 'l' ? 'ml' : 'g',
+                    servingSize: Number(p.serving_quantity) || null,
+                    per100,
+                    source: 'barcode'
+                };
+            } catch (e) { return null; }
+        }
+
+        async function analyzeImageWithGemini(canvas, barcodeHint) {
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const b64 = dataUrl.split(',')[1];
+            const nameLang = settings.lang === 'en' ? 'English' : 'Persian (Farsi)';
+            const prompt = `This photo shows a food product: possibly its nutrition facts table, its barcode, or its package. Text may be in ANY language (Persian, Arabic, English, Turkish, German, Russian, Chinese, etc.).
+1. Identify the product. Write product_name in ${nameLang}. Give the brand if visible.
+2. If a nutrition table is readable, copy its numbers exactly and express them PER 100 g (or per 100 ml for drinks) in "per100". If the table only lists per-serving values, convert to per 100 using the serving size. Set nutrition_from_label = true.
+3. If no table is readable but the product is recognizable, estimate typical per-100 values and set nutrition_from_label = false.
+4. Energy must be kcal (if only kJ is given, divide by 4.184). Sodium must be in mg (if only salt is given, sodium mg = salt g × 400).
+5. net_quantity / net_unit: the package net weight or volume if printed (net_unit "g" or "ml"; use "pcs" for a count; "unknown" if not visible). serving_size_g if printed, otherwise 0.
+6. barcode: digits if readable, otherwise "".${barcodeHint ? ` The barcode was decoded as ${barcodeHint}.` : ''}
+If the photo does not show a food product at all, return product_name "" and zeros.`;
+            const schema = {
+                type: 'OBJECT',
+                properties: {
+                    product_name: { type: 'STRING' }, brand: { type: 'STRING' }, barcode: { type: 'STRING' },
+                    net_quantity: { type: 'NUMBER' }, net_unit: { type: 'STRING', enum: ['g', 'ml', 'pcs', 'unknown'] },
+                    serving_size_g: { type: 'NUMBER' }, nutrition_from_label: { type: 'BOOLEAN' },
+                    per100: { type: 'OBJECT', properties: NUT_SCHEMA_PROPS, required: NUT_KEYS }
+                },
+                required: ['product_name', 'net_unit', 'nutrition_from_label', 'per100']
+            };
+            const r = await callGemini([{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data: b64 } }], schema);
+            if (!r.product_name && isNutEmpty(r.per100)) return null;
+            return {
+                productName: r.product_name || '',
+                brand: r.brand || '',
+                barcode: r.barcode || barcodeHint || '',
+                netQty: r.net_unit !== 'unknown' && r.net_quantity > 0 ? r.net_quantity : null,
+                netUnit: r.net_unit,
+                servingSize: r.serving_size_g > 0 ? r.serving_size_g : null,
+                per100: isNutEmpty(r.per100) ? null : cleanNut(r.per100),
+                source: r.nutrition_from_label ? 'label' : 'ai'
+            };
+        }
+
+        async function processScan(file) {
+            showBanner(t('analyzingPhoto'));
+            let result = null, aiError = null, barcode = null;
+            try {
+                const canvas = await loadImageToCanvas(file, 1600);
+                showBanner(t('readingBarcode'));
+                barcode = await detectBarcode(canvas);
+                if (barcode) {
+                    showBanner(t('lookingUpBarcode', { code: barcode }));
+                    result = await lookupBarcodeOFF(barcode);
+                }
+                // اگر بارکد نبود یا اطلاعات ارزش غذایی نداشت، عکس را هوش مصنوعی بخواند
+                if (!result || !result.per100) {
+                    showBanner(t('analyzingPhoto'));
+                    try {
+                        const small = await loadImageToCanvas(file, 1280);
+                        const ai = await analyzeImageWithGemini(small, barcode);
+                        if (ai) result = result ? { ...result, ...ai, productName: result.productName || ai.productName, brand: result.brand || ai.brand, netQty: result.netQty || ai.netQty } : ai;
+                    } catch (e) { aiError = e; console.warn('image AI failed', e); }
+                }
+            } catch (e) {
+                console.error(e);
+            } finally { hideBanner(); }
+
+            if (!result) {
+                if (barcode) showToast(t('tBarcodeNoData', { code: barcode }), 'warning');
+                showToast(aiError && aiError.fatal ? t('tNeedKey') : t('tScanFail'), 'warning');
+                return;
+            }
+            pendingScan = result;
+            autofillFromScan();
+            renderScanPreview();
+            showToast(t('tScanOk'), 'success');
+        }
+
+        function autofillFromScan() {
+            const s = pendingScan;
+            if (!s || !s.netQty) return;
+            const amountEl = document.getElementById('purchase-amount');
+            const unitEl = document.getElementById('purchase-unit');
+            if (amountEl.value) return;
+            if (s.netUnit === 'g' && unitEl.value === 'گرم') amountEl.value = s.netQty;
+            else if (s.netUnit === 'ml' && unitEl.value === 'میلی‌لیتر') amountEl.value = s.netQty;
+            else if (s.netUnit === 'pcs' && unitEl.value === 'عدد') amountEl.value = s.netQty;
+        }
+
+        // تبدیل ارزش غذایی اسکن‌شده (در ۱۰۰ گرم) به واحد انتخابی
+        function nutritionFromScan(s, unit) {
+            if (!s || !s.per100) return null;
+            if (isBulkUnit(unit)) return cleanNut(s.per100, s.source);
+            let grams = null;
+            if (unit === 'عدد' && s.servingSize) grams = s.servingSize;
+            else if (s.netQty && s.netUnit !== 'pcs') grams = s.netQty;
+            else if (s.servingSize) grams = s.servingSize;
+            if (!grams) grams = 100;
+            const f = grams / 100;
+            const out = {};
+            NUT_KEYS.forEach(k => out[k] = (s.per100[k] || 0) * f);
+            return cleanNut(out, s.source);
+        }
+
+        function nutGridHtml(nut) {
+            const n = nut || emptyNut();
+            const cell = (label, val, cls = 'text-slate-800', lcls = 'text-slate-400') =>
+                `<div class="bg-white rounded-lg py-1 border border-slate-100"><div class="text-[9px] ${lcls}">${label}</div><div class="font-bold ${cls}">${val}</div></div>`;
+            return `<div class="grid grid-cols-6 gap-1 text-center text-[11px]">
+                ${cell(t('calShort'), n.calories)}
+                ${cell(t('protein'), n.protein + 'g', 'text-emerald-700', 'text-emerald-600')}
+                ${cell(t('carbShort'), n.carbs + 'g', 'text-slate-700')}
+                ${cell(t('fat'), n.fat + 'g', 'text-slate-700')}
+                ${cell(t('sugar'), n.sugar + 'g', 'text-slate-700')}
+                ${cell(t('sodShort'), n.sodium, 'text-amber-700', 'text-amber-600')}
+            </div>`;
+        }
+
+        function sourceBadge(src) {
+            if (!src) return '';
+            const colors = { label: 'bg-emerald-100 text-emerald-700', barcode: 'bg-sky-100 text-sky-700', ai: 'bg-violet-100 text-violet-700', estimate: 'bg-amber-100 text-amber-800', manual: 'bg-slate-100 text-slate-600' };
+            return `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${colors[src] || colors.manual}">${esc(srcName(src))}</span>`;
+        }
+
+        function renderScanPreview() {
+            const box = document.getElementById('scan-preview');
+            const s = pendingScan;
+            if (!s) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+            const qty = s.netQty ? t('netQty', { q: `${s.netQty} ${s.netUnit === 'pcs' ? unitLabel('عدد') : s.netUnit}` }) : '';
+            box.className = 'bg-sky-50 border border-sky-200 rounded-2xl p-3 space-y-2';
+            box.innerHTML = `
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <div class="text-[10px] text-sky-700 font-bold flex items-center gap-1.5">${esc(t('scanResult'))} ${sourceBadge(s.source)}</div>
+                        <div class="font-bold text-sm text-slate-900 truncate">${esc(s.productName || '—')}</div>
+                        <div class="text-[11px] text-slate-500">${esc([s.brand, s.barcode ? '#' + s.barcode : '', qty].filter(Boolean).join(' · '))}</div>
+                    </div>
+                    <div class="flex gap-1 shrink-0">
+                        <button type="button" onclick="startScan()" class="p-1.5 bg-white rounded-lg text-sky-700 border border-sky-200" title="${esc(t('rescan'))}"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        <button type="button" onclick="clearScan()" class="p-1.5 bg-white rounded-lg text-slate-500 border border-slate-200" title="${esc(t('removeScan'))}"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+                ${s.per100 ? `<div class="text-[10px] text-slate-500">${esc(t('per100'))}</div>${nutGridHtml(s.per100)}` : ''}
+            `;
+            lucide.createIcons();
+        }
+
+        function clearScan() { pendingScan = null; renderScanPreview(); }
+
+        // ==================== لیست خرید خودکار ====================
+        function syncAutoShoppingList() {
+            const addedItems = [];
+            appState.pantry.forEach(item => {
+                const min = Number(item.minThreshold) || 0;
+                if (item.amount <= min && !appState.shoppingList.some(s => s.name.trim() === item.name.trim())) {
+                    appState.shoppingList.push({
+                        id: generateId(), standardId: item.standardId || null, name: item.name, unit: item.unit,
+                        reasonCode: item.amount <= 0 ? 'empty' : 'low', reasonAmount: item.amount
+                    });
+                    addedItems.push(item.name);
+                }
+            });
+            appState.standards.forEach(std => {
+                const inPantry = appState.pantry.find(p => p.name.trim() === std.name.trim());
+                if (!inPantry && !appState.shoppingList.some(s => s.name.trim() === std.name.trim())) {
+                    appState.shoppingList.push({ id: generateId(), standardId: std.id, name: std.name, unit: std.unit, reasonCode: 'missing' });
+                    addedItems.push(std.name);
+                }
+            });
+            saveState();
+            updateShoppingBadge();
+            return addedItems;
+        }
+
+        function shopReason(item) {
+            switch (item.reasonCode) {
+                case 'empty': return t('reasonEmpty');
+                case 'low': return t('reasonLow', { n: item.reasonAmount, u: unitLabel(item.unit) });
+                case 'missing': return t('reasonMissing');
+                case 'manual': return t('reasonManual');
+                default: return item.reason || t('needToBuy');
+            }
+        }
+
+        function updateShoppingBadge() {
+            const badge = document.getElementById('shopping-badge');
+            const count = appState.shoppingList.length;
+            badge.textContent = count;
+            badge.classList.toggle('hidden', count === 0);
+        }
+
+        function calculateNutritionForAmount(nutritionPerBasis, amount, unit) {
+            if (!nutritionPerBasis) return emptyNut();
+            const factor = isBulkUnit(unit) ? (amount / 100) : amount;
+            const out = {};
+            NUT_KEYS.forEach(k => out[k] = roundNum((nutritionPerBasis[k] || 0) * factor));
+            return out;
+        }
+
+        // ==================== ناوبری ====================
+        function switchTab(tabName) {
+            currentTab = tabName;
+            const keys = { dashboard: 'Dashboard', pantry: 'Pantry', shopping: 'Shopping', standards: 'Standards' };
+            Object.keys(keys).forEach(tb => {
+                const section = document.getElementById(`tab-${tb}`);
+                const navBtn = document.getElementById(`nav-${tb}`);
+                const active = tb === tabName;
+                section.classList.toggle('hidden', !active);
+                navBtn.classList.toggle('text-indigo-600', active);
+                navBtn.classList.toggle('font-bold', active);
+                navBtn.classList.toggle('text-slate-400', !active);
+            });
+            document.getElementById('header-title').textContent = t('t' + keys[tabName]);
+            document.getElementById('header-subtitle').textContent = t('s' + keys[tabName]);
+            renderAll();
+        }
+
+        // ==================== داشبورد ====================
+        function changeSelectedDate(offsetDays) {
+            const [y, m, d] = selectedDateStr.split('-').map(Number);
+            const o = new Date(y, m - 1, d + offsetDays);
+            selectedDateStr = `${o.getFullYear()}-${String(o.getMonth() + 1).padStart(2, '0')}-${String(o.getDate()).padStart(2, '0')}`;
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const labelEl = document.getElementById('selected-date-label');
+            const subEl = document.getElementById('selected-date-sub');
+            if (selectedDateStr === getTodayDateStr()) {
+                labelEl.textContent = t('today');
+                subEl.textContent = formatDate(selectedDateStr);
+            } else {
+                labelEl.textContent = formatDate(selectedDateStr);
+                subEl.textContent = selectedDateStr;
+            }
+
+            const dayLogs = appState.consumptionLogs.filter(log => log.date === selectedDateStr);
+            const totals = emptyNut();
+            dayLogs.forEach(log => NUT_KEYS.forEach(k => totals[k] += log.nutrition?.[k] || 0));
+
+            document.getElementById('stat-calories').textContent = Math.round(totals.calories);
+            document.getElementById('stat-protein').textContent = roundNum(totals.protein);
+            document.getElementById('stat-carbs').textContent = roundNum(totals.carbs);
+            document.getElementById('stat-fat').textContent = roundNum(totals.fat);
+            document.getElementById('stat-sugar').textContent = roundNum(totals.sugar);
+            document.getElementById('stat-sodium').textContent = Math.round(totals.sodium);
+            document.getElementById('daily-items-count').textContent = t('itemsLogged', { n: dayLogs.length });
+
+            const listContainer = document.getElementById('daily-logs-list');
+            if (dayLogs.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="bg-white border border-dashed border-slate-200 rounded-2xl p-6 text-center space-y-2">
+                        <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto"><i data-lucide="coffee" class="w-5 h-5"></i></div>
+                        <p class="text-xs font-medium text-slate-500">${esc(t('noLogs'))}</p>
+                    </div>`;
+            } else {
+                listContainer.innerHTML = dayLogs.slice().reverse().map(log => `
+                    <div class="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs flex items-center justify-between">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm text-slate-800">${esc(log.foodName)}</span>
+                                <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-lg">${log.amount} ${esc(unitLabel(log.unit))}</span>
+                                ${log.outside ? `<span class="text-[10px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.5 rounded-full">🍽️ ${esc(t('outBadge'))}</span>` : ''}
+                            </div>
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                                <span>🔥 ${Math.round(log.nutrition.calories)} ${esc(t('calShort'))}</span>
+                                <span class="text-emerald-600 font-bold">🥩 ${roundNum(log.nutrition.protein)}g ${esc(t('protein'))}</span>
+                                <span>🧂 ${Math.round(log.nutrition.sodium)}mg ${esc(t('sodShort'))}</span>
+                            </div>
+                        </div>
+                        <button onclick="deleteConsumptionLog('${log.id}')" class="p-2 text-slate-400 hover:text-rose-500 rounded-xl transition" title="${esc(t('deleteRestore'))}">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>`).join('');
+            }
+            lucide.createIcons();
+        }
+
+        // ==================== انبار ====================
+        function renderPantry() {
+            const query = (document.getElementById('pantry-search')?.value || '').trim().toLowerCase();
+            const container = document.getElementById('pantry-list');
+            const filtered = appState.pantry.filter(item =>
+                item.name.toLowerCase().includes(query) || (item.productName || '').toLowerCase().includes(query) || (item.brand || '').toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center"><p class="text-xs font-medium text-slate-500">${esc(t('pantryEmpty'))}</p></div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => {
+                const min = Number(item.minThreshold) || 0;
+                let statusBadge = `<span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">${esc(t('statusOk'))}</span>`;
+                let borderClass = 'border-slate-200/80';
+                if (item.amount <= 0) {
+                    statusBadge = `<span class="text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">${esc(t('statusEmpty'))}</span>`;
+                    borderClass = 'border-rose-300 bg-rose-50/20';
+                } else if (item.amount <= min) {
+                    statusBadge = `<span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">${esc(t('statusLow'))}</span>`;
+                    borderClass = 'border-amber-300 bg-amber-50/20';
+                }
+                const meta = [item.productName && item.productName !== item.name ? item.productName : '', item.brand, item.barcode ? '#' + item.barcode : ''].filter(Boolean).join(' · ');
+
+                return `
+                    <div class="bg-white border ${borderClass} rounded-2xl p-4 shadow-2xs space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-bold text-base text-slate-900">${esc(item.name)}</h3>
+                                    ${statusBadge}
+                                </div>
+                                ${meta ? `<div class="text-[10px] text-slate-400 mt-0.5 truncate">${esc(meta)}</div>` : ''}
+                                <div class="text-xs text-slate-500 mt-1">
+                                    ${esc(t('currentStock'))} <span class="font-extrabold text-sm text-indigo-600">${item.amount} ${esc(unitLabel(item.unit))}</span>
+                                    <span class="text-[11px] text-slate-400 ms-2">${esc(t('minAllowed', { n: min }))}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="openEditPantryModal('${item.id}')" class="p-2 text-slate-400 hover:text-indigo-600 bg-slate-50 rounded-xl"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                <button onclick="deletePantryItem('${item.id}')" class="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                            <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1.5">
+                                <span class="flex items-center gap-1.5">${esc(t('nutritionPer', { basis: basisLabel(item.unit) }))} ${sourceBadge(item.nutrition?.source)}</span>
+                                <button onclick="refreshItemNutrition('${item.id}')" class="text-indigo-600 font-bold flex items-center gap-1">
+                                    <i data-lucide="sparkles" class="w-3 h-3"></i>${esc(t('aiRefresh'))}
+                                </button>
+                            </div>
+                            ${nutGridHtml(item.nutrition)}
+                        </div>
+                    </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        // ==================== لیست خرید ====================
+        function renderShoppingList() {
+            const container = document.getElementById('shopping-list');
+            updateShoppingBadge();
+            if (appState.shoppingList.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center space-y-2">
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto"><i data-lucide="check-circle-2" class="w-6 h-6"></i></div>
+                        <p class="text-sm font-bold text-slate-700">${esc(t('shopEmptyTitle'))}</p>
+                        <p class="text-xs text-slate-400">${esc(t('shopEmptySub'))}</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+            container.innerHTML = appState.shoppingList.map(item => `
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs flex items-center justify-between gap-3">
+                    <div class="space-y-0.5 min-w-0">
+                        <div class="font-bold text-sm text-slate-900">${esc(item.name)}</div>
+                        <div class="text-[11px] text-amber-600 font-medium">${esc(shopReason(item))}</div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="openPurchaseModal('${item.id}')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition">
+                            <i data-lucide="check" class="w-4 h-4"></i><span>${esc(t('bought'))}</span>
+                        </button>
+                        <button onclick="deleteShoppingItem('${item.id}')" class="p-2 text-slate-400 hover:text-rose-500 rounded-xl"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+                </div>`).join('');
+            lucide.createIcons();
+        }
+
+        // ==================== لیست استاندارد ====================
+        function renderStandards() {
+            const container = document.getElementById('standards-list');
+            if (appState.standards.length === 0) {
+                container.innerHTML = `<div class="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center"><p class="text-xs font-medium text-slate-500">${esc(t('stdEmpty'))}</p></div>`;
+                return;
+            }
+            container.innerHTML = appState.standards.map(std => `
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-3">
+                    <div class="flex items-start justify-between">
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-base text-slate-900">${esc(std.name)}</h3>
+                            ${std.brand || std.barcode ? `<div class="text-[10px] text-slate-400 truncate">${esc([std.brand, std.barcode ? '#' + std.barcode : ''].filter(Boolean).join(' · '))}</div>` : ''}
+                            <p class="text-xs text-slate-500 mt-0.5">${esc(t('stdMinAtHome'))} <span class="font-bold text-indigo-600">${std.minThreshold} ${esc(unitLabel(std.unit))}</span></p>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="openStandardModal('${std.id}')" class="p-2 text-slate-400 hover:text-indigo-600 bg-slate-50 rounded-xl"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="deleteStandardItem('${std.id}')" class="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                        <div class="text-[10px] text-slate-400 mb-1.5 flex items-center gap-1.5">${esc(t('nutritionTable', { basis: basisLabel(std.unit) }))} ${sourceBadge(std.nutrition?.source)}</div>
+                        ${nutGridHtml(std.nutrition)}
+                    </div>
+                </div>`).join('');
+            lucide.createIcons();
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderPantry();
+            renderShoppingList();
+            renderStandards();
+        }
+
+        // ==================== ثبت مصرف ====================
+        function openLogConsumptionModal() {
+            const availableItems = appState.pantry.filter(i => i.amount > 0);
+            document.getElementById('consume-item-select').innerHTML = availableItems.map(item =>
+                `<option value="${item.id}">${esc(t('optionAvail', { name: item.name, n: item.amount, u: unitLabel(item.unit) }))}</option>`).join('');
+            document.getElementById('consume-amount').value = '';
+            document.getElementById('consume-nutrition-preview').classList.add('hidden');
+            updateConsumeUnitHint();
+            document.getElementById('out-rows').innerHTML = '';
+            addOutsideRow(false);
+            setConsumeSource(availableItems.length ? 'home' : 'out', true);
+            openModal('modal-consume');
+        }
+
+        // ---------- انتخاب منبع: خانه یا بیرون ----------
+        function setConsumeSource(src, silent) {
+            if (src === 'home' && !appState.pantry.some(i => i.amount > 0)) {
+                if (!silent) showToast(t('tPantryEmpty'), 'warning');
+                src = 'out';
+            }
+            document.getElementById('consume-home-form').classList.toggle('hidden', src !== 'home');
+            document.getElementById('consume-out-form').classList.toggle('hidden', src !== 'out');
+            ['home', 'out'].forEach(s => {
+                document.getElementById('src-' + s).className = 'py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ' +
+                    (s === src ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500');
+            });
+        }
+
+        // ---------- غذای بیرون: ردیف‌ها ----------
+        function addOutsideRow(focus = true) {
+            const wrap = document.getElementById('out-rows');
+            const row = document.createElement('div');
+            row.className = 'out-row bg-slate-50 border border-slate-200 rounded-xl p-2 flex items-center gap-1.5 animate-fade-in';
+            row.innerHTML = `
+                <input type="text" class="out-name flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-indigo-500" data-i18n-ph="outNamePh" placeholder="${esc(t('outNamePh'))}">
+                <input type="number" step="any" min="0.1" value="1" class="out-amount w-14 bg-white border border-slate-200 rounded-lg px-1.5 py-2 text-sm font-bold text-center focus:outline-none focus:border-indigo-500" data-i18n-ph="outAmountPh" placeholder="${esc(t('outAmountPh'))}">
+                <select data-units class="out-unit w-[5.5rem] bg-white border border-slate-200 rounded-lg px-1 py-2 text-xs focus:outline-none focus:border-indigo-500">
+                    ${UNITS.map(u => `<option value="${u}">${esc(unitLabel(u))}</option>`).join('')}
+                </select>
+                <button type="button" onclick="removeOutsideRow(this)" class="p-1.5 text-slate-400 hover:text-rose-500 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+            row.querySelector('.out-unit').value = 'پرس';
+            wrap.appendChild(row);
+            lucide.createIcons();
+            if (focus) row.querySelector('.out-name').focus();
+        }
+
+        function removeOutsideRow(btn) {
+            const rows = document.querySelectorAll('#out-rows .out-row');
+            if (rows.length <= 1) {
+                // آخرین ردیف حذف نمی‌شود، فقط خالی می‌شود
+                rows[0].querySelector('.out-name').value = '';
+                rows[0].querySelector('.out-amount').value = '1';
+                return;
+            }
+            btn.closest('.out-row').remove();
+        }
+
+        async function handleOutsideSubmit(e) {
+            e.preventDefault();
+            const items = [...document.querySelectorAll('#out-rows .out-row')].map(r => ({
+                name: r.querySelector('.out-name').value.trim(),
+                amount: parseFloat(r.querySelector('.out-amount').value),
+                unit: r.querySelector('.out-unit').value
+            })).filter(i => i.name && i.amount > 0);
+            if (items.length === 0) { showToast(t('tOutEmpty'), 'warning'); return; }
+
+            closeModal('modal-consume');
+            const date = selectedDateStr;
+            for (const it of items) {
+                const per = await fetchNutritionFromAI(it.name, it.unit, true);
+                if (!per) showToast(t('tOutNoNut', { name: it.name }), 'warning');
+                const nutrition = calculateNutritionForAmount(per, it.amount, it.unit);
+                if (per?.source) nutrition.source = per.source;
+                appState.consumptionLogs.push({
+                    id: generateId(), date, outside: true, pantryItemId: null,
+                    foodName: it.name, amount: it.amount, unit: it.unit, nutrition
+                });
+                saveState();
+                renderDashboard();
+            }
+            renderAll();
+            showToast(t('tOutLogged', { n: items.length }), 'success');
+        }
+
+        function updateConsumeUnitHint() {
+            const item = appState.pantry.find(i => i.id === document.getElementById('consume-item-select').value);
+            if (!item) return;
+            document.getElementById('consume-unit-label').textContent = unitLabel(item.unit);
+            document.getElementById('consume-stock-hint').textContent = t('stockHint', { n: item.amount, u: unitLabel(item.unit) });
+            const vals = isBulkUnit(item.unit) ? [100, 200] : [1, 2];
+            document.getElementById('quick-amount-buttons').innerHTML = vals.map(v =>
+                `<button type="button" onclick="setConsumeAmount(${v})" class="px-2.5 py-2 bg-slate-100 rounded-xl text-xs font-bold">${v}</button>`).join('');
+            previewConsumeNutrition();
+        }
+
+        function setConsumeAmount(val) {
+            document.getElementById('consume-amount').value = val;
+            previewConsumeNutrition();
+        }
+
+        function previewConsumeNutrition() {
+            const item = appState.pantry.find(i => i.id === document.getElementById('consume-item-select').value);
+            const amount = parseFloat(document.getElementById('consume-amount').value);
+            const previewBox = document.getElementById('consume-nutrition-preview');
+            if (!item || isNaN(amount) || amount <= 0) { previewBox.classList.add('hidden'); return; }
+            const nut = calculateNutritionForAmount(item.nutrition, amount, item.unit);
+            document.getElementById('prev-cal').textContent = nut.calories;
+            document.getElementById('prev-pro').textContent = nut.protein;
+            document.getElementById('prev-carb').textContent = nut.carbs;
+            document.getElementById('prev-fat').textContent = nut.fat;
+            document.getElementById('prev-sug').textContent = nut.sugar;
+            document.getElementById('prev-sod').textContent = nut.sodium;
+            previewBox.classList.remove('hidden');
+        }
+
+        function handleConsumeSubmit(e) {
+            e.preventDefault();
+            const item = appState.pantry.find(i => i.id === document.getElementById('consume-item-select').value);
+            const amount = parseFloat(document.getElementById('consume-amount').value);
+            if (!item || isNaN(amount) || amount <= 0) return;
+            if (amount > item.amount) { showToast(t('tOverStock', { n: item.amount, u: unitLabel(item.unit) }), 'error'); return; }
+
+            appState.consumptionLogs.push({
+                id: generateId(), date: selectedDateStr, pantryItemId: item.id, foodName: item.name,
+                amount, unit: item.unit, nutrition: calculateNutritionForAmount(item.nutrition, amount, item.unit)
+            });
+            item.amount = roundNum(item.amount - amount);
+            const newlyAdded = syncAutoShoppingList();
+            saveState();
+            closeModal('modal-consume');
+            renderAll();
+            if (newlyAdded.length > 0) showToast(t('tConsumeLowWarn', { names: newlyAdded.join(settings.lang === 'en' ? ', ' : '، ') }), 'warning');
+            else showToast(t('tConsumed', { n: amount, u: unitLabel(item.unit), name: item.name }), 'success');
+        }
+
+        function deleteConsumptionLog(logId) {
+            const idx = appState.consumptionLogs.findIndex(l => l.id === logId);
+            if (idx === -1) return;
+            const log = appState.consumptionLogs[idx];
+            if (!log.outside) {
+                const pantryItem = appState.pantry.find(p => p.id === log.pantryItemId || p.name === log.foodName);
+                if (pantryItem) pantryItem.amount = roundNum(pantryItem.amount + log.amount);
+            }
+            appState.consumptionLogs.splice(idx, 1);
+            saveState();
+            renderAll();
+            showToast(t(log.outside ? 'tLogDeletedOut' : 'tLogDeleted'), 'info');
+        }
+
+        // ==================== لیست استاندارد ====================
+        function openStandardModal(stdId = null) {
+            const titleEl = document.getElementById('standard-modal-title');
+            const fields = { 'std-cal': 'calories', 'std-pro': 'protein', 'std-carb': 'carbs', 'std-fat': 'fat', 'std-sug': 'sugar', 'std-sod': 'sodium' };
+            if (stdId) {
+                const std = appState.standards.find(s => s.id === stdId);
+                if (!std) return;
+                titleEl.textContent = t('stdModalEdit');
+                document.getElementById('std-id').value = std.id;
+                document.getElementById('std-name').value = std.name;
+                document.getElementById('std-unit').value = std.unit;
+                document.getElementById('std-min').value = std.minThreshold;
+                Object.entries(fields).forEach(([id, k]) => document.getElementById(id).value = std.nutrition?.[k] || 0);
+            } else {
+                titleEl.textContent = t('stdModalNew');
+                document.getElementById('std-id').value = '';
+                document.getElementById('std-name').value = '';
+                document.getElementById('std-unit').value = 'گرم';
+                document.getElementById('std-min').value = '';
+                Object.keys(fields).forEach(id => document.getElementById(id).value = 0);
+            }
+            updateStandardUnitLabels();
+            openModal('modal-standard');
+        }
+
+        function updateStandardUnitLabels() {
+            const unit = document.getElementById('std-unit').value || 'گرم';
+            document.getElementById('std-nutrition-basis-label').textContent = t('nutritionPer', { basis: basisLabel(unit) });
+        }
+
+        async function fetchNutritionForStandardForm() {
+            const name = document.getElementById('std-name').value.trim();
+            const unit = document.getElementById('std-unit').value;
+            if (!name) { showToast(t('tEnterName'), 'warning'); return; }
+            const nut = await fetchNutritionFromAI(name, unit);
+            if (nut) {
+                document.getElementById('std-cal').value = nut.calories;
+                document.getElementById('std-pro').value = nut.protein;
+                document.getElementById('std-carb').value = nut.carbs;
+                document.getElementById('std-fat').value = nut.fat;
+                document.getElementById('std-sug').value = nut.sugar;
+                document.getElementById('std-sod').value = nut.sodium;
+                showToast(t('tAiFilled', { name }), 'success');
+            }
+        }
+
+        async function handleStandardSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('std-id').value;
+            const name = document.getElementById('std-name').value.trim();
+            const unit = document.getElementById('std-unit').value;
+            const minThreshold = parseFloat(document.getElementById('std-min').value) || 0;
+            let nutrition = cleanNut({
+                calories: document.getElementById('std-cal').value, protein: document.getElementById('std-pro').value,
+                carbs: document.getElementById('std-carb').value, fat: document.getElementById('std-fat').value,
+                sugar: document.getElementById('std-sug').value, sodium: document.getElementById('std-sod').value
+            }, 'manual');
+            closeModal('modal-standard');
+
+            if (isNutEmpty(nutrition)) {
+                const aiNut = await fetchNutritionFromAI(name, unit);
+                if (aiNut) nutrition = aiNut;
+            } else if (id) {
+                // اگر عددها تغییر نکرده، منبع قبلی حفظ شود
+                const old = appState.standards.find(s => s.id === id)?.nutrition;
+                if (old && NUT_KEYS.every(k => roundNum(old[k]) === nutrition[k])) nutrition.source = old.source || 'manual';
+            }
+
+            if (id) {
+                const std = appState.standards.find(s => s.id === id);
+                if (std) Object.assign(std, { name, unit, minThreshold, nutrition });
+            } else {
+                appState.standards.push({ id: generateId(), name, unit, minThreshold, nutrition });
+            }
+            const existingPantry = appState.pantry.find(p => p.name.trim() === name);
+            if (existingPantry) Object.assign(existingPantry, { minThreshold, unit, nutrition });
+
+            syncAutoShoppingList();
+            saveState();
+            renderAll();
+            showToast(t('tStdSaved', { name }), 'success');
+        }
+
+        function deleteStandardItem(id) {
+            appState.standards = appState.standards.filter(s => s.id !== id);
+            saveState();
+            renderStandards();
+            showToast(t('tStdDeleted'), 'info');
+        }
+
+        // ==================== لیست خرید و ثبت خرید ====================
+        function handleQuickAddShopping(e) {
+            e.preventDefault();
+            const input = document.getElementById('quick-shopping-name');
+            const name = input.value.trim();
+            if (!name) return;
+            const std = appState.standards.find(s => s.name.trim() === name);
+            appState.shoppingList.push({ id: generateId(), standardId: std ? std.id : null, name, unit: std ? std.unit : 'گرم', reasonCode: 'manual' });
+            input.value = '';
+            saveState();
+            renderShoppingList();
+            showToast(t('tShopAdded', { name }), 'success');
+        }
+
+        function deleteShoppingItem(id) {
+            appState.shoppingList = appState.shoppingList.filter(s => s.id !== id);
+            saveState();
+            renderShoppingList();
+        }
+
+        function openPurchaseModal(shopId) {
+            const shopItem = appState.shoppingList.find(s => s.id === shopId);
+            if (!shopItem) return;
+            pendingScan = null;
+            renderScanPreview();
+            document.getElementById('purchase-shop-id').value = shopItem.id;
+            document.getElementById('purchase-item-name').textContent = shopItem.name;
+            document.getElementById('purchase-unit').value = shopItem.unit || 'گرم';
+            document.getElementById('purchase-amount').value = '';
+            openModal('modal-purchase');
+        }
+
+        async function handlePurchaseSubmit(e) {
+            e.preventDefault();
+            const shopId = document.getElementById('purchase-shop-id').value;
+            const amount = parseFloat(document.getElementById('purchase-amount').value);
+            const unit = document.getElementById('purchase-unit').value;
+            const shopItem = appState.shoppingList.find(s => s.id === shopId);
+            if (!shopItem || isNaN(amount) || amount <= 0) return;
+
+            const itemName = shopItem.name;
+            const scan = pendingScan;
+            pendingScan = null;
+            closeModal('modal-purchase');
+            appState.shoppingList = appState.shoppingList.filter(s => s.id !== shopId);
+
+            const std = appState.standards.find(s => s.name.trim() === itemName);
+            const pantryItem = appState.pantry.find(p => p.name.trim() === itemName);
+
+            // ۱. اسکن شده؟ دقیق‌ترین اطلاعات
+            let nutrition = nutritionFromScan(scan, unit);
+            // ۲. وگرنه اطلاعات قبلی (اگر واحد همان باشد)
+            if (!nutrition) {
+                const prev = (pantryItem && pantryItem.unit === unit && pantryItem.nutrition) || (std && std.unit === unit && std.nutrition) || null;
+                if (!isNutEmpty(prev)) nutrition = prev;
+            }
+            // ۳. وگرنه جستجوی تقریبی آنلاین
+            if (!nutrition) nutrition = await fetchNutritionFromAI(itemName, unit) || emptyNut();
+
+            const meta = scan ? { productName: scan.productName || '', brand: scan.brand || '', barcode: scan.barcode || '' } : {};
+
+            if (pantryItem) {
+                pantryItem.amount = roundNum((pantryItem.unit === unit ? pantryItem.amount : 0) + amount);
+                pantryItem.unit = unit;
+                pantryItem.nutrition = nutrition;
+                Object.assign(pantryItem, meta);
+            } else {
+                appState.pantry.push({
+                    id: generateId(), standardId: std ? std.id : null, name: itemName, amount, unit,
+                    minThreshold: std ? std.minThreshold : (isBulkUnit(unit) ? 100 : 1), nutrition, ...meta
+                });
+            }
+
+            if (std) {
+                if (scan || isNutEmpty(std.nutrition) || std.unit !== unit) { std.nutrition = nutrition; std.unit = unit; }
+                if (scan) Object.assign(std, { brand: meta.brand, barcode: meta.barcode });
+            } else {
+                appState.standards.push({
+                    id: generateId(), name: itemName, unit, minThreshold: isBulkUnit(unit) ? 100 : 1, nutrition,
+                    brand: meta.brand || '', barcode: meta.barcode || ''
+                });
+            }
+
+            saveState();
+            renderAll();
+            showToast(t('tPurchased', { name: itemName, n: amount, u: unitLabel(unit) }), 'success');
+        }
+
+        // ==================== انبار ====================
+        function openAddPantryModal() {
+            document.getElementById('pantry-modal-title').textContent = t('pantryAddTitle');
+            document.getElementById('pantry-edit-id').value = '';
+            document.getElementById('pantry-name').value = '';
+            document.getElementById('pantry-amount').value = '';
+            document.getElementById('pantry-unit').value = 'گرم';
+            document.getElementById('pantry-min').value = '100';
+            openModal('modal-pantry');
+        }
+
+        function openEditPantryModal(id) {
+            const item = appState.pantry.find(p => p.id === id);
+            if (!item) return;
+            document.getElementById('pantry-modal-title').textContent = t('pantryEditTitle');
+            document.getElementById('pantry-edit-id').value = item.id;
+            document.getElementById('pantry-name').value = item.name;
+            document.getElementById('pantry-amount').value = item.amount;
+            document.getElementById('pantry-unit').value = item.unit;
+            document.getElementById('pantry-min').value = item.minThreshold;
+            openModal('modal-pantry');
+        }
+
+        async function handlePantrySubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('pantry-edit-id').value;
+            const name = document.getElementById('pantry-name').value.trim();
+            const amount = parseFloat(document.getElementById('pantry-amount').value) || 0;
+            const unit = document.getElementById('pantry-unit').value;
+            const minThreshold = parseFloat(document.getElementById('pantry-min').value) || 0;
+            closeModal('modal-pantry');
+
+            if (editId) {
+                const item = appState.pantry.find(p => p.id === editId);
+                if (item) Object.assign(item, { name, amount, unit, minThreshold });
+            } else {
+                const std = appState.standards.find(s => s.name.trim() === name);
+                const nutrition = (std && !isNutEmpty(std.nutrition) ? std.nutrition : null) || await fetchNutritionFromAI(name, unit) || emptyNut();
+                appState.pantry.push({ id: generateId(), standardId: std ? std.id : null, name, amount, unit, minThreshold, nutrition });
+            }
+            syncAutoShoppingList();
+            saveState();
+            renderAll();
+            showToast(t('tPantryUpdated'), 'success');
+        }
+
+        function deletePantryItem(id) {
+            appState.pantry = appState.pantry.filter(p => p.id !== id);
+            syncAutoShoppingList();
+            saveState();
+            renderAll();
+            showToast(t('tPantryDeleted'), 'info');
+        }
+
+        async function refreshItemNutrition(id) {
+            const item = appState.pantry.find(p => p.id === id);
+            if (!item) return;
+            const nut = await fetchNutritionFromAI(item.name, item.unit);
+            if (nut) {
+                item.nutrition = nut;
+                const std = appState.standards.find(s => s.name.trim() === item.name.trim());
+                if (std) std.nutrition = nut;
+                saveState();
+                renderAll();
+                showToast(t('tNutUpdated', { name: item.name }), 'success');
+            }
+        }
+
+        // ==================== مودال‌ها و پشتیبان ====================
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function openSettingsModal() {
+            document.getElementById('api-key-input').value = settings.apiKey || '';
+            renderStorageStatus();
+            openModal('modal-settings');
+        }
+
+        function saveApiKey() {
+            settings.apiKey = document.getElementById('api-key-input').value.trim();
+            saveSettings();
+            showToast(t('tKeySaved'), 'success');
+        }
+
+        function exportData() {
+            downloadBlob(new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' }), `kitchen-backup-${getTodayDateStr()}.json`);
+            showToast(t('tBackupDownloaded'), 'success');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported && Array.isArray(imported.pantry)) {
+                        appState = normalizeState(imported);
+                        saveState();
+                        renderAll();
+                        closeModal('modal-settings');
+                        showToast(t('tRestored'), 'success');
+                    } else showToast(t('tInvalidFile'), 'error');
+                } catch (err) { showToast(t('tReadErr'), 'error'); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function resetToSampleData() {
+            if (!confirm(t('confirmReset'))) return;
+            initDefaultSampleData();
+            renderAll();
+            closeModal('modal-settings');
+            showToast(t('tResetDone'), 'info');
+        }
+
+        // ==================== شروع ====================
+        window.onload = async function () {
+            await loadState();
+            fillUnitSelects();
+            syncAutoShoppingList();
+            applyLanguage();
+            lucide.createIcons();
+            initStorage();
+        };
+    </script>
+</body>
+</html>
