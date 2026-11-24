@@ -130,7 +130,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-4 gap-2 text-center pt-2 border-t border-white/10">
+                <div class="grid grid-cols-5 gap-1.5 text-center pt-2 border-t border-white/10">
                     <div>
                         <div class="text-[11px] text-slate-400" data-i18n="carbs"></div>
                         <div class="font-bold text-sm mt-0.5"><span id="stat-carbs">0</span> <span class="text-[10px] font-normal text-slate-400">g</span></div>
@@ -142,6 +142,10 @@
                     <div>
                         <div class="text-[11px] text-slate-400" data-i18n="sugar"></div>
                         <div class="font-bold text-sm mt-0.5"><span id="stat-sugar">0</span> <span class="text-[10px] font-normal text-slate-400">g</span></div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-lime-300" data-i18n="fiber"></div>
+                        <div class="font-bold text-sm mt-0.5 text-lime-300"><span id="stat-fiber">0</span> <span class="text-[10px] font-normal text-slate-400">g</span></div>
                     </div>
                     <div>
                         <div class="text-[11px] text-slate-400" data-i18n="sodium"></div>
@@ -289,6 +293,7 @@
                         <div><span data-i18n="carbs"></span>: <span class="font-bold" id="prev-carb">0</span>g</div>
                         <div><span data-i18n="fat"></span>: <span class="font-bold" id="prev-fat">0</span>g</div>
                         <div><span data-i18n="sugar"></span>: <span class="font-bold" id="prev-sug">0</span>g</div>
+                        <div><span data-i18n="fiber"></span>: <span class="font-bold text-lime-700" id="prev-fib">0</span>g</div>
                         <div><span data-i18n="sodShort"></span>: <span class="font-bold text-amber-700" id="prev-sod">0</span>mg</div>
                     </div>
                 </div>
@@ -334,7 +339,8 @@
                         <div><label class="block text-[10px] text-slate-500 mb-0.5" data-i18n="carbLabel"></label><input type="number" step="any" id="std-carb" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
                         <div><label class="block text-[10px] text-slate-500 mb-0.5" data-i18n="fatLabel"></label><input type="number" step="any" id="std-fat" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
                         <div><label class="block text-[10px] text-slate-500 mb-0.5" data-i18n="sugLabel"></label><input type="number" step="any" id="std-sug" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
-                        <div><label class="block text-[10px] text-amber-700 mb-0.5" data-i18n="sodLabel"></label><input type="number" step="any" id="std-sod" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
+                        <div><label class="block text-[10px] text-lime-700 mb-0.5" data-i18n="fibLabel"></label><input type="number" step="any" id="std-fib" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
+                        <div class="col-span-2"><label class="block text-[10px] text-amber-700 mb-0.5" data-i18n="sodLabel"></label><input type="number" step="any" id="std-sod" value="0" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"></div>
                     </div>
                     <p class="text-[10px] text-slate-400 leading-normal" data-i18n="zeroHint"></p>
                 </div>
@@ -527,7 +533,7 @@
         const DATA_FILE = "kitchen-data.json";
         const GEMINI_MODELS = ['gemini-3-flash-preview', 'gemini-2.5-flash'];
         const ZXING_URL = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
-        const NUT_KEYS = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'sodium'];
+        const NUT_KEYS = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'fiber', 'sodium'];
         // واحدها به همان شکل فارسی ذخیره می‌شوند تا با داده‌های قبلی سازگار بمانند
         const UNITS = ['گرم', 'عدد', 'میلی‌لیتر', 'بسته', 'پیمانه', 'پرس'];
         const UNIT_EN = { 'گرم': 'g', 'عدد': 'pcs', 'میلی‌لیتر': 'ml', 'بسته': 'pack', 'پیمانه': 'cup', 'پرس': 'serving' };
@@ -543,7 +549,7 @@
                 tStandards: 'لیست استاندارد من', sStandards: 'خوراکی‌هایی که همیشه باید در خانه باشند',
                 today: 'امروز',
                 summaryToday: 'خلاصه دریافتی امروز', itemsLogged: '{n} مورد ثبت شده',
-                totalCalories: 'کالری کل', protein: 'پروتئین', gramsWord: 'گرم', carbs: 'کربوهیدرات', fat: 'چربی', sugar: 'قند', sodium: 'نمک/سدیم',
+                totalCalories: 'کالری کل', protein: 'پروتئین', gramsWord: 'گرم', carbs: 'کربوهیدرات', fat: 'چربی', sugar: 'قند', sodium: 'نمک/سدیم', fiber: 'فیبر', fibLabel: 'فیبر (گرم)',
                 calShort: 'کالری', carbShort: 'کربو', sodShort: 'نمک',
                 logFoodBtn: 'ثبت خوراکی که الان خوردم', loggedFoods: 'خوراکی‌های ثبت‌شده', autoDeduct: 'کسر خودکار از انبار انجام می‌شود',
                 noLogs: 'هنوز خوراکی برای این روز ثبت نشده است.', deleteRestore: 'حذف و بازگرداندن به انبار',
@@ -648,7 +654,7 @@
                 tStandards: 'My standard list', sStandards: 'Foods that should always be at home',
                 today: 'Today',
                 summaryToday: "Today's intake", itemsLogged: '{n} items logged',
-                totalCalories: 'Total calories', protein: 'Protein', gramsWord: 'g', carbs: 'Carbs', fat: 'Fat', sugar: 'Sugar', sodium: 'Sodium',
+                totalCalories: 'Total calories', protein: 'Protein', gramsWord: 'g', carbs: 'Carbs', fat: 'Fat', sugar: 'Sugar', sodium: 'Sodium', fiber: 'Fiber', fibLabel: 'Fiber (g)',
                 calShort: 'Calories', carbShort: 'Carbs', sodShort: 'Sodium',
                 logFoodBtn: 'Log what I just ate', loggedFoods: 'Logged foods', autoDeduct: 'Deducted from pantry automatically',
                 noLogs: 'Nothing logged for this day yet.', deleteRestore: 'Delete and return to pantry',
@@ -793,7 +799,7 @@
         }
         function generateId() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 7); }
         function roundNum(num) { return Math.round((Number(num) || 0) * 10) / 10; }
-        function emptyNut() { return { calories: 0, protein: 0, carbs: 0, fat: 0, sugar: 0, sodium: 0 }; }
+        function emptyNut() { return { calories: 0, protein: 0, carbs: 0, fat: 0, sugar: 0, fiber: 0, sodium: 0 }; }
         function cleanNut(n, source) {
             const out = {};
             NUT_KEYS.forEach(k => out[k] = roundNum(n?.[k]));
@@ -894,10 +900,10 @@
 
         function initDefaultSampleData() {
             const N = SAMPLE_NAMES[settings.lang] || SAMPLE_NAMES.fa;
-            const eggNut = { calories: 72, protein: 6.3, carbs: 0.4, fat: 4.8, sugar: 0.2, sodium: 71 };
-            const chNut = { calories: 165, protein: 31, carbs: 0, fat: 3.6, sugar: 0, sodium: 74 };
-            const milkNut = { calories: 42, protein: 3.4, carbs: 5, fat: 1, sugar: 5, sodium: 44 };
-            const riceNut = { calories: 130, protein: 2.7, carbs: 28, fat: 0.3, sugar: 0.1, sodium: 1 };
+            const eggNut = { calories: 72, protein: 6.3, carbs: 0.4, fat: 4.8, sugar: 0.2, fiber: 0, sodium: 71 };
+            const chNut = { calories: 165, protein: 31, carbs: 0, fat: 3.6, sugar: 0, fiber: 0, sodium: 74 };
+            const milkNut = { calories: 42, protein: 3.4, carbs: 5, fat: 1, sugar: 5, fiber: 0, sodium: 44 };
+            const riceNut = { calories: 130, protein: 2.7, carbs: 28, fat: 0.3, sugar: 0.1, fiber: 0.4, sodium: 1 };
             appState = {
                 standards: [
                     { id: 'std_1', name: N.egg, unit: 'عدد', minThreshold: 4, nutrition: eggNut },
@@ -1073,7 +1079,7 @@
                 return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
             }).join(',');
         }
-        function nutHeaders() { return [t('calories') + ' (kcal)', t('protein') + ' (g)', t('carbs') + ' (g)', t('fat') + ' (g)', t('sugar') + ' (g)', t('sodium') + ' (mg)']; }
+        function nutHeaders() { return [t('calories') + ' (kcal)', t('protein') + ' (g)', t('carbs') + ' (g)', t('fat') + ' (g)', t('sugar') + ' (g)', t('fiber') + ' (g)', t('sodium') + ' (mg)']; }
         function nutVals(n) { n = n || {}; return NUT_KEYS.map(k => n[k] ?? 0); }
         function srcName(s) { return s ? t({ label: 'srcLabel', barcode: 'srcBarcode', ai: 'srcAi', estimate: 'srcEstimate', manual: 'srcManual' }[s] || 'srcManual') : ''; }
 
@@ -1158,7 +1164,7 @@
 
         const NUT_SCHEMA_PROPS = {
             calories: { type: 'NUMBER' }, protein: { type: 'NUMBER' }, carbs: { type: 'NUMBER' },
-            fat: { type: 'NUMBER' }, sugar: { type: 'NUMBER' }, sodium: { type: 'NUMBER' }
+            fat: { type: 'NUMBER' }, sugar: { type: 'NUMBER' }, fiber: { type: 'NUMBER' }, sodium: { type: 'NUMBER' }
         };
         const NUT_SCHEMA = { type: 'OBJECT', properties: NUT_SCHEMA_PROPS, required: NUT_KEYS };
 
@@ -1174,10 +1180,14 @@
             const suffix = bulk ? '_100g' : '_serving';
             try {
                 const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}&search_simple=1&action=process&json=1&page_size=20&fields=product_name,nutriments`;
-                const r = await fetchWithTimeout(url);
-                if (!r.ok) return null;
+                let r = null;
+                for (let attempt = 0; attempt < 3 && !(r && r.ok); attempt++) {
+                    try { r = await fetchWithTimeout(url); } catch (e) { r = null; }
+                    if (!(r && r.ok) && attempt < 2) await sleep(2000);
+                }
+                if (!(r && r.ok)) return null;
                 const j = await r.json();
-                const vals = { calories: [], protein: [], carbs: [], fat: [], sugar: [], sodium: [] };
+                const vals = { calories: [], protein: [], carbs: [], fat: [], sugar: [], fiber: [], sodium: [] };
                 for (const p of (j.products || [])) {
                     const n = p.nutriments || {};
                     let kcal = n['energy-kcal' + suffix];
@@ -1188,6 +1198,7 @@
                     vals.carbs.push(+(n['carbohydrates' + suffix] || 0));
                     vals.fat.push(+(n['fat' + suffix] || 0));
                     vals.sugar.push(+(n['sugars' + suffix] || 0));
+                    vals.fiber.push(+(n['fiber' + suffix] || 0));
                     vals.sodium.push(+(n['sodium' + suffix] || 0) * 1000);
                 }
                 if (vals.calories.length === 0) return null;
@@ -1205,7 +1216,7 @@
                 const basis = isBulkUnit(unit) ? `100 ${unit === 'میلی‌لیتر' ? 'ml' : 'g'}` : `one typical ${UNIT_EN[unit] || 'piece'}`;
                 const ctx = eatenOut ? ' This was eaten at a restaurant / outside the home, so assume a typical restaurant portion and preparation (oil, sauces, etc.).' : '';
                 const prompt = `Give realistic nutrition facts for the food "${foodName}" (the name may be in Persian or any other language) per ${basis}.${ctx}
-Use reliable references such as USDA FoodData Central. calories in kcal; protein, carbs, fat, sugar in grams; sodium in milligrams.`;
+Use reliable references such as USDA FoodData Central. calories in kcal; protein, carbs, fat, sugar and dietary fiber in grams; sodium in milligrams.`;
                 try {
                     const p = await callGemini([{ text: prompt }], NUT_SCHEMA);
                     return cleanNut(p, 'ai');
@@ -1310,7 +1321,7 @@ Use reliable references such as USDA FoodData Central. calories in kcal; protein
                 if (kcal == null && n['energy_100g'] != null) kcal = n['energy_100g'] / 4.184;
                 const per100 = kcal != null ? cleanNut({
                     calories: kcal, protein: n.proteins_100g, carbs: n.carbohydrates_100g, fat: n.fat_100g,
-                    sugar: n.sugars_100g, sodium: (n.sodium_100g || (n.salt_100g ? n.salt_100g / 2.5 : 0)) * 1000
+                    sugar: n.sugars_100g, fiber: n.fiber_100g, sodium: (n.sodium_100g || (n.salt_100g ? n.salt_100g / 2.5 : 0)) * 1000
                 }) : null;
                 const qUnit = String(p.product_quantity_unit || '').toLowerCase();
                 return {
@@ -1334,7 +1345,7 @@ Use reliable references such as USDA FoodData Central. calories in kcal; protein
 1. Identify the product. Write product_name in ${nameLang}. Give the brand if visible.
 2. If a nutrition table is readable, copy its numbers exactly and express them PER 100 g (or per 100 ml for drinks) in "per100". If the table only lists per-serving values, convert to per 100 using the serving size. Set nutrition_from_label = true.
 3. If no table is readable but the product is recognizable, estimate typical per-100 values and set nutrition_from_label = false.
-4. Energy must be kcal (if only kJ is given, divide by 4.184). Sodium must be in mg (if only salt is given, sodium mg = salt g × 400).
+4. Energy must be kcal (if only kJ is given, divide by 4.184). Sodium must be in mg (if only salt is given, sodium mg = salt g × 400). "fiber" is dietary fibre in grams (0 if the label truly shows none; estimate if not listed).
 5. net_quantity / net_unit: the package net weight or volume if printed (net_unit "g" or "ml"; use "pcs" for a count; "unknown" if not visible). serving_size_g if printed, otherwise 0.
 6. barcode: digits if readable, otherwise "".${barcodeHint ? ` The barcode was decoded as ${barcodeHint}.` : ''}
 If the photo does not show a food product at all, return product_name "" and zeros.`;
@@ -1427,12 +1438,13 @@ If the photo does not show a food product at all, return product_name "" and zer
             const n = nut || emptyNut();
             const cell = (label, val, cls = 'text-slate-800', lcls = 'text-slate-400') =>
                 `<div class="bg-white rounded-lg py-1 border border-slate-100"><div class="text-[9px] ${lcls}">${label}</div><div class="font-bold ${cls}">${val}</div></div>`;
-            return `<div class="grid grid-cols-6 gap-1 text-center text-[11px]">
+            return `<div class="grid grid-cols-7 gap-1 text-center text-[11px]">
                 ${cell(t('calShort'), n.calories)}
                 ${cell(t('protein'), n.protein + 'g', 'text-emerald-700', 'text-emerald-600')}
                 ${cell(t('carbShort'), n.carbs + 'g', 'text-slate-700')}
                 ${cell(t('fat'), n.fat + 'g', 'text-slate-700')}
                 ${cell(t('sugar'), n.sugar + 'g', 'text-slate-700')}
+                ${cell(t('fiber'), n.fiber == null ? '–' : n.fiber + 'g', 'text-lime-700', 'text-lime-600')}
                 ${cell(t('sodShort'), n.sodium, 'text-amber-700', 'text-amber-600')}
             </div>`;
         }
@@ -1564,6 +1576,7 @@ If the photo does not show a food product at all, return product_name "" and zer
             document.getElementById('stat-carbs').textContent = roundNum(totals.carbs);
             document.getElementById('stat-fat').textContent = roundNum(totals.fat);
             document.getElementById('stat-sugar').textContent = roundNum(totals.sugar);
+            document.getElementById('stat-fiber').textContent = roundNum(totals.fiber);
             document.getElementById('stat-sodium').textContent = Math.round(totals.sodium);
             document.getElementById('daily-items-count').textContent = t('itemsLogged', { n: dayLogs.length });
 
@@ -1586,6 +1599,7 @@ If the photo does not show a food product at all, return product_name "" and zer
                             <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
                                 <span>🔥 ${Math.round(log.nutrition.calories)} ${esc(t('calShort'))}</span>
                                 <span class="text-emerald-600 font-bold">🥩 ${roundNum(log.nutrition.protein)}g ${esc(t('protein'))}</span>
+                                <span class="text-lime-700">🌾 ${roundNum(log.nutrition.fiber)}g ${esc(t('fiber'))}</span>
                                 <span>🧂 ${Math.round(log.nutrition.sodium)}mg ${esc(t('sodShort'))}</span>
                             </div>
                         </div>
@@ -1831,6 +1845,7 @@ If the photo does not show a food product at all, return product_name "" and zer
             document.getElementById('prev-carb').textContent = nut.carbs;
             document.getElementById('prev-fat').textContent = nut.fat;
             document.getElementById('prev-sug').textContent = nut.sugar;
+            document.getElementById('prev-fib').textContent = nut.fiber;
             document.getElementById('prev-sod').textContent = nut.sodium;
             previewBox.classList.remove('hidden');
         }
@@ -1872,7 +1887,7 @@ If the photo does not show a food product at all, return product_name "" and zer
         // ==================== لیست استاندارد ====================
         function openStandardModal(stdId = null) {
             const titleEl = document.getElementById('standard-modal-title');
-            const fields = { 'std-cal': 'calories', 'std-pro': 'protein', 'std-carb': 'carbs', 'std-fat': 'fat', 'std-sug': 'sugar', 'std-sod': 'sodium' };
+            const fields = { 'std-cal': 'calories', 'std-pro': 'protein', 'std-carb': 'carbs', 'std-fat': 'fat', 'std-sug': 'sugar', 'std-fib': 'fiber', 'std-sod': 'sodium' };
             if (stdId) {
                 const std = appState.standards.find(s => s.id === stdId);
                 if (!std) return;
@@ -1910,6 +1925,7 @@ If the photo does not show a food product at all, return product_name "" and zer
                 document.getElementById('std-carb').value = nut.carbs;
                 document.getElementById('std-fat').value = nut.fat;
                 document.getElementById('std-sug').value = nut.sugar;
+                document.getElementById('std-fib').value = nut.fiber;
                 document.getElementById('std-sod').value = nut.sodium;
                 showToast(t('tAiFilled', { name }), 'success');
             }
@@ -1924,7 +1940,8 @@ If the photo does not show a food product at all, return product_name "" and zer
             let nutrition = cleanNut({
                 calories: document.getElementById('std-cal').value, protein: document.getElementById('std-pro').value,
                 carbs: document.getElementById('std-carb').value, fat: document.getElementById('std-fat').value,
-                sugar: document.getElementById('std-sug').value, sodium: document.getElementById('std-sod').value
+                sugar: document.getElementById('std-sug').value, fiber: document.getElementById('std-fib').value,
+                sodium: document.getElementById('std-sod').value
             }, 'manual');
             closeModal('modal-standard');
 
